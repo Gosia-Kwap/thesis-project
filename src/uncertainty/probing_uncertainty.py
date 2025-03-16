@@ -2,6 +2,9 @@
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import jaccard_similarity
 
+from src.uncertainty.entailment import get_entailment_score
+
+
 class ProbingUncertaintyEstimator:
     """ Probing uncertainty estimation class. """
     def __init__(self, model, tokenizer, temperature_range, trigger_phrases, rephrase_strategies, original_answers):
@@ -50,7 +53,7 @@ class ProbingUncertaintyEstimator:
         if method == 'jaccard':
             return jaccard_similarity(text1, text2)
         if method == 'entailment':
-            raise NotImplementedError
+            return get_entailment_score(text1, text2)
         else:
             raise NotImplementedError
 
