@@ -1,0 +1,4 @@
+torch~=2.3.0
+scipy~=1.14.1
+sklearn~=0.0.post9
+scikit-learn~=1.5.2

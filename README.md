@@ -43,7 +43,6 @@ The extended ZEUS method is applied to Chain of Thought reasoning to produce unc
 │   └── utils/              # Utility functions (e.g., data loading, preprocessing)
 ├── results/                # Experiment results (e.g., plots, tables)
 ├── requirements.txt        # Python dependencies
-├── LICENSE                 # License file
 └── README.md               # This file
 ```
 
