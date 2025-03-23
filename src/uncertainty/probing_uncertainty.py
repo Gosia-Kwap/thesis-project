@@ -24,6 +24,34 @@ class ProbingUncertaintyEstimator:
         return self.compute_uncertainty(temperature_samples) + self.compute_uncertainty(trigger_samples) + self.compute_uncertainty(rephrase_samples)
 
     def _explanation_similarity(self, text1, text2, method='cosine'):
+        """ Passed explanations are split into separate steps and the cross similarity between all steps is computed."""
+        # TODO: Possible different ways of computing the similarity between the explanations:
+        # 1. Compute the similarity between the entire explanations
+        # 2. Compute the similarity between each corresponding step of the explanations (have to add method for when diff lengths
+        # 3. Compute the similarity between each step of original explanation and all steps of the second (per step uncertainty)
+
+        text1_steps = text1.split("\n")
+        text2_steps = text2.split("\n")
+
+        similarity = 0
+        for step1, step2 in zip(text1_steps, text2_steps):
+            # Remove the confidence part from each step
+            step1_cleaned = self._remove_confidence(step1)
+            step2_cleaned = self._remove_confidence(step2)
+
+            # Compute semantic similarity on the cleaned steps
+            similarity += self._sematic_similarity(step1_cleaned, step2_cleaned, method)
+
+        # Return the average similarity
+        return similarity / len(text1_steps)
+
+    @staticmethod
+    def _remove_confidence(step):
+        """
+        Remove the 'Confidence: [number]' part from the step.
+        """
+        # Split on "Confidence:" and take the first part
+        return step.split("Confidence:")[0].strip()
 
 
     def _sematic_similarity(self, text1, text2, method='cosine'):
