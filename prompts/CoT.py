@@ -1,4 +1,4 @@
-prompt = """Read the question, give your answer by analyzing step by step, and assign a confidence level to
+generic_prompt = """Assign a confidence level to
  each step and the final answer. The output format is as follows:
  Step 1: [Your reasoning here], Confidence: [Your confidence here]%
  Step 2:
@@ -13,4 +13,6 @@ prompt = """Read the question, give your answer by analyzing step by step, and a
  instance, if your confidence level is 80%, it means you are 80% certain that your answer is correct. 
  Question:
  """
+trigger_phrases = ["Read the question, give your answer by analyzing step by step", "Let’s think step by step.", "Let’s think about question below logically step by step."
+    , "Before we dive into the answer, think about the reasoning", "Before answering the question, let’s understand the input."]
 

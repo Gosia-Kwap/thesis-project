@@ -7,47 +7,27 @@ from src.uncertainty.entailment import get_entailment_score
 
 class ProbingUncertaintyEstimator:
     """ Probing uncertainty estimation class. """
-    def __init__(self, model, tokenizer, temperature_range, trigger_phrases, rephrase_strategies, original_answers):
+    def __init__(self, model, tokenizer, original_answers):
         self.model = model
         self.tokenizer = tokenizer
-        self.temperature_range = temperature_range
-        self.trigger_phrases = trigger_phrases
-        self.rephrase_strategies = rephrase_strategies
         self.original_answers = original_answers
 
-    def temperature_perturbation(self, input_text, num_samples):
-        """ Generate perturbed samples using temperature scaling. """
-        perturbed_samples = []
-        for temperature in self.temperature_range:
-            perturbed_samples.extend(self._temperature_perturbation(input_text, temperature, num_samples))
-        return perturbed_samples
-
-    def trigger_phrase_perturbation(self, input_text, num_samples):
-        """ Generate perturbed samples using trigger phrases. """
-        perturbed_samples = []
-        for trigger_phrase in self.trigger_phrases:
-            perturbed_samples.extend(self._trigger_phrase_perturbation(input_text, trigger_phrase, num_samples))
-        return perturbed_samples
-
-    def rephrase_perturbation(self, input_text, num_samples):
-        perturbed_samples = []
-        for rephrase_strategy in self.rephrase_strategies:
-            perturbed_samples.extend(self._rephrase_perturbation(input_text, rephrase_strategy, num_samples))
-        return perturbed_samples
-
     def compute_uncertainty(self, perturbed_list, similarity_method='cosine') -> float:
-        """ Compute uncertainty for a given input. """
+        """ Compute uncertainty for a given input and perturbed samples. """
         similarity_score = []
         for sample in perturbed_list[1:]:
-            similarity_score.append(self.sematic_similarity(perturbed_list[0], sample, similarity_method))
+            similarity_score.append(self._explanation_similarity(self.original_answers, sample, similarity_method))
         return sum(similarity_score) / len(similarity_score)
 
-
-
     def combine_uncertainties(self, temperature_samples, trigger_samples, rephrase_samples):
+        """ Combine uncertainties from different perturbations. """
         return self.compute_uncertainty(temperature_samples) + self.compute_uncertainty(trigger_samples) + self.compute_uncertainty(rephrase_samples)
 
-    def sematic_similarity(self, text1, text2, method='cosine'):
+    def _explanation_similarity(self, text1, text2, method='cosine'):
+
+
+    def _sematic_similarity(self, text1, text2, method='cosine'):
+        # TODO: Change the similarity to be step to step instead of entire explanation (too broad)
         if method == 'cosine':
             return cosine_similarity(text1, text2)
         if method == 'jaccard':
@@ -57,26 +37,19 @@ class ProbingUncertaintyEstimator:
         else:
             raise NotImplementedError
 
-    def estimate_uncertainty(self, input_text, num_samples, similarity_method : str = 'cosine'):
-        temperature_samples = self.temperature_perturbation(input_text, num_samples)
-        trigger_samples = self.trigger_phrase_perturbation(input_text, num_samples)
-        rephrase_samples = self.rephrase_perturbation(input_text, num_samples)
-        return self.combine_uncertainties(temperature_samples, trigger_samples, rephrase_samples)
+    def estimate_uncertainty(self, temperature_samples = None, trigger_samples = None, rephrase_samples = None, similarity_method : str = 'cosine'):
+        uncertainty = []
+        if temperature_samples:
+            temperature_uncertainty = self.compute_uncertainty(temperature_samples, similarity_method)
+            uncertainty.append(temperature_uncertainty)
+        if trigger_samples:
+            trigger_uncertainty = self.compute_uncertainty(trigger_samples, similarity_method)
+            uncertainty.append(trigger_uncertainty)
+        if rephrase_samples:
+            rephrase_uncertainty = self.compute_uncertainty(rephrase_samples, similarity_method)
+            uncertainty.append(rephrase_uncertainty)
+        if uncertainty:
+            return sum(uncertainty) / len(uncertainty)
+        else:
+            raise ValueError("No perturbed samples provided to estimate uncertainty.")
 
-    def _temperature_perturbation(self, input_text, temperature, num_samples):
-        perturbed_samples = []
-        for _ in range(num_samples):
-            perturbed_samples.append(self._generate_perturbed_sample(input_text, temperature))
-        return perturbed_samples
-
-    def _trigger_phrase_perturbation(self, input_text, trigger_phrase, num_samples):
-        perturbed_samples = []
-        for _ in range(num_samples):
-            perturbed_samples.append(self._generate_perturbed_sample(input_text, trigger_phrase))
-        return perturbed_samples
-
-    def _rephrase_perturbation(self, input_text, rephrase_strategy, num_samples):
-        perturbed_samples = []
-        for _ in range(num_samples):
-            perturbed_samples.append(self._generate_perturbed_sample(input_text, rephrase_strategy))
-        return perturbed_samples
