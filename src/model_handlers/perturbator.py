@@ -1,43 +1,98 @@
-from prompts.CoT import generic_prompt, trigger_phrases
+from typing import List, Dict, Optional
+import torch
 
-class Perturbator:
-    def __init__(self, model):
+class PerturbationGenerator:
+    """Handles efficient generation of perturbed samples"""
+
+    def __init__(self, model, tokenizer, generic_prompt: str, trigger_phrases: List[str], default_temp=0.7):
         self.model = model
-        self.default_temp = {'gpt': 0.7, 'gpt2': 0.7, 'gpt3': 0.7}
+        self.tokenizer = tokenizer
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
+
+        # Pre-cache all prompt components
+        self.base_prompt_ids = self.tokenizer.encode(generic_prompt, return_tensors='pt').to(self.device)
+        self.trigger_cache = {
+            trigger: self.tokenizer.encode(trigger, return_tensors='pt').to(self.device)
+            for trigger in trigger_phrases
+        }
         self.prompt = generic_prompt
         self.trigger_phrases = trigger_phrases
 
-    def temperature_perturbation(self, task, input_text,  num_samples):
-        """ Generate perturbed samples using temperature scaling. """
-        default_temp = self.default_temp[self.model]
-        temperatures = [default_temp / 2,  default_temp, default_temp + (1 - default_temp) / 2, 1]
-        perturbed_samples = []
-        for temperature in temperatures:
-            perturbed_samples.extend(self._generate_samples(task, input_text, num_samples, temperature=temperature))
-        return perturbed_samples
+        # Default temperatures for perturbation
+        self.default_temp = default_temp
+        self.temperatures = [
+            self.default_temp,
+            self.default_temp + (1 - self.default_temp) / 2,
+            1.0
+        ]
 
-    def trigger_phrase_perturbation(self, task, input_text, num_samples):
-        """ Generate perturbed samples using trigger phrases. """
-        perturbed_samples = []
-        for trigger_phrase in trigger_phrases:
-            perturbed_samples.extend(self._generate_samples(task, input_text, num_samples, trigger_phrase=trigger_phrase))
-        return perturbed_samples
+    def generate_for_question(self, question: str, num_samples: int = 3) -> Dict[str, List[str]]:
+        """Generate all perturbations for a single question"""
+        results = {}
 
-    def _generate_samples(self, task, input_text, num_samples, temperature=None, trigger_phrase=None):
-        if trigger_phrase:
-            prompt = trigger_phrase + self.prompt
-        else:
-            prompt = self.trigger_phrases[0] + self.prompt
+        # Temperature perturbations
+        for temp in self.temperatures:
+            key = f"temp_{temp:.2f}"
+            results[key] = self._generate_samples(
+                question=question,
+                num_samples=num_samples,
+                temperature=temp
+            )
 
-        if temperature is None:
-            temperature = self.default_temp.get(self.model.config.model_type, 0.7)
+        # Trigger phrase perturbations
+        for trigger in self.trigger_cache:
+            key = f"trigger_{trigger[:10]}"
+            results[key] = self._generate_samples(
+                question=question,
+                num_samples=num_samples,
+                trigger_phrase=trigger
+            )
 
-        # Generate multiple sequences in one call
-        generated_texts = self.model.generate(
-            input_ids=self.model.tokenizer.encode(prompt + input_text, return_tensors='pt'),
-            temperature=temperature,
-            num_return_sequences=num_samples
-        )
+        return results
 
-        # Decode and return the generated texts
-        return [self.model.tokenizer.decode(text, skip_special_tokens=True) for text in generated_texts]
+    def _generate_samples(self, question: str, num_samples: int,
+                          temperature: Optional[float] = None,
+                          trigger_phrase: Optional[str] = None) -> List[str]:
+        """Generates clean outputs without any prompt text"""
+        # 1. Prepare all input components
+
+        trigger = trigger_phrase if trigger_phrase else next(iter(self.trigger_phrases))
+        full_prompt = self.prompt + question + trigger + ' '  'Answer: \n'
+
+        # 2. Tokenize entire prompt once (more accurate for length calculation)
+        inputs = self.tokenizer(
+            full_prompt,
+            return_tensors="pt",
+            padding=True,
+            truncation=True
+        ).to(self.device)
+
+        # 3. Generate with attention mask
+        with torch.no_grad():
+            outputs = self.model.generate(
+                input_ids=inputs.input_ids,
+                attention_mask=inputs.attention_mask,
+                temperature=temperature or self.default_temp,
+                do_sample=True,
+                max_new_tokens=150,
+                num_return_sequences=num_samples,
+                pad_token_id=self.tokenizer.eos_token_id,
+                return_dict_in_generate=True
+            )
+
+        # 4. Cut out the prompt and decode
+        prompt_length = inputs.input_ids.shape[1]
+        clean_outputs = []
+
+        for seq in outputs.sequences:
+            generated_tokens = seq[prompt_length:]
+
+            text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+
+            text = text.split("Answer:")[-1].strip()  # Remove any new answer prefixes
+
+            clean_outputs.append(text)
+
+        return clean_outputs
+
