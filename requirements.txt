@@ -8,3 +8,4 @@ pandas
 transformers
 tqdm
 huggingface_hub
+dotenv
