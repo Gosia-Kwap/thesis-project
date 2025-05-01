@@ -9,3 +9,4 @@ transformers
 tqdm
 huggingface_hub
 dotenv
+accelerate 1.6.0

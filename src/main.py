@@ -11,7 +11,7 @@ from model_handlers.perturbator import PerturbationGenerator as Perturbator
 load_dotenv()
 os.environ["HUGGINGFACE_HUB_TOKEN"] = os.getenv("HUGGING_FACE_TOKEN")
 # Get the absolute path to the project directory
-project_dir = os.path.abspath(os.path.join(os.getcwd(), ".."))
+project_dir = os.getcwd()
 
 # Construct the full path to the dataset
 data_path = os.path.join(project_dir, "data", "SVAMP.json")
