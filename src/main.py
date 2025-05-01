@@ -5,7 +5,7 @@ from tqdm import tqdm
 import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from model_handlers.perturbator import Perturbator
+from model_handlers.perturbator import PerturbationGenerator as Perturbator
 
 
 load_dotenv()
