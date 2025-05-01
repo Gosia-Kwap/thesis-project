@@ -21,6 +21,8 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 source ~/thesis_venv/bin/activate
 
+git pull origin main
+
 pip install --upgrade pip
 pip install -r requirements.txt
 
