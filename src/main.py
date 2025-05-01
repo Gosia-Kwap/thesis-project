@@ -9,7 +9,7 @@ from model_handlers.perturbator import PerturbationGenerator as Perturbator
 
 
 load_dotenv()
-os.environ["HUGGINGFACE_HUB_TOKEN"] = os.getenv("HUGGINGFACE_TOKEN")
+os.environ["HUGGINGFACE_HUB_TOKEN"] = os.getenv("HUGGING_FACE_TOKEN")
 # Get the absolute path to the project directory
 project_dir = os.path.abspath(os.path.join(os.getcwd(), ".."))
 
