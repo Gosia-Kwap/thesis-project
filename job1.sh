@@ -19,7 +19,7 @@ module purge
 
 module load Python/3.10.4-GCCcore-11.3.0
 
-source ~/thesis_venv/bin/activate
+source ./thesis_venv/bin/activate
 
 git pull origin main
 
