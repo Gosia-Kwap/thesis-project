@@ -6,6 +6,7 @@ import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from model_handlers.perturbator import PerturbationGenerator as Perturbator
+from prompts.CoT import generic_prompt, trigger_phrases
 
 
 load_dotenv()
@@ -20,7 +21,7 @@ data_path = os.path.join(project_dir, "data", "SVAMP.json")
 data = pd.read_json(data_path)
 
 # Step 3: Load the Gemma 2B Model and Tokenizer
-model_name = "google/gemma-2-2b-it"
+model_name = "google/gemma-2-27b-it"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=torch.float16)
 
@@ -28,7 +29,7 @@ model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torc
 df = pd.DataFrame(data['Body'] + ', ' + data['Question'], columns=['text'])
 df['label'] = data['Answer']
 
-perturbator = Perturbator(model, tokenizer)
+perturbator = Perturbator(model, tokenizer, generic_prompt, trigger_phrases)
 
 results = []
 for index, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating"):
@@ -48,4 +49,5 @@ for index, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating"):
     })
 
 results_df = pd.DataFrame(results)
-results_df.to_csv("results/perturbation_results.csv", index=False)
+results_df.to_csv("results/SVAMP_Gemma_27b_perturbation_results.csv", index=False)
+print("Results saved to results/SVAMP_Gemma27_perturbation_results.csv")

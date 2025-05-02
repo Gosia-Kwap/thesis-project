@@ -75,7 +75,6 @@ class PerturbationGenerator:
                 attention_mask=inputs.attention_mask,
                 temperature=temperature or self.default_temp,
                 do_sample=True,
-                max_new_tokens=150,
                 num_return_sequences=num_samples,
                 pad_token_id=self.tokenizer.eos_token_id,
                 return_dict_in_generate=True
