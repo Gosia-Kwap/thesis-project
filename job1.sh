@@ -7,14 +7,15 @@
 #SBATCH --job-name=first_attempt
 #SBATCH --mem=10GB
 
+module purge
+
+module load Python/3.10.4-GCCcore-11.3.0
+
+
 # Create venv if not exists
 if [ ! -d "thesis_venv" ]; then
   python3 -m venv thesis_venv
 fi
-
-module purge
-
-module load Python/3.10.4-GCCcore-11.3.0
 
 source ./thesis_venv/bin/activate
 
