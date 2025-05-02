@@ -24,6 +24,6 @@ git pull origin main
 pip install --upgrade pip
 pip install -r requirements.txt
 
-python ./src/main.py
+python -m src.main
 
 deactivate
