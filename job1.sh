@@ -12,9 +12,6 @@ if [ ! -d "thesis_venv" ]; then
   python3 -m venv thesis_venv
 fi
 
-# Activate venv
-source thesis_venv/bin/activate
-
 module purge
 
 module load Python/3.10.4-GCCcore-11.3.0
