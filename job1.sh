@@ -13,7 +13,7 @@ if [ ! -d "thesis_venv" ]; then
 fi
 
 # Activate venv
-source venv/bin/activate
+source thesis_venv/bin/activate
 
 module purge
 
