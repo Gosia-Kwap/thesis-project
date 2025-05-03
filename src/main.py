@@ -5,7 +5,7 @@ from tqdm import tqdm
 import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from model_handlers.perturbator import PerturbationGenerator as Perturbator
+from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
 from prompts.CoT import generic_prompt, trigger_phrases
 
 
