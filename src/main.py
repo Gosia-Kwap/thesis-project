@@ -13,6 +13,7 @@ load_dotenv()
 os.environ["HUGGINGFACE_HUB_TOKEN"] = os.getenv("HUGGING_FACE_TOKEN")
 # Get the absolute path to the project directory
 project_dir = os.getcwd()
+token = os.getenv("HUGGING_FACE_TOKEN")
 
 # Construct the full path to the dataset
 data_path = os.path.join(project_dir, "data", "SVAMP.json")
@@ -22,8 +23,12 @@ data = pd.read_json(data_path)
 
 # Step 3: Load the Gemma 2B Model and Tokenizer
 model_name = "google/gemma-2-27b-it"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=torch.float16)
+tokenizer = AutoTokenizer.from_pretrained(model_name,use_auth_token=token)
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    device_map="auto",
+    torch_dtype=torch.float16,
+    use_auth_token=token)
 
 # split for questions and answers
 df = pd.DataFrame(data['Body'] + ', ' + data['Question'], columns=['text'])
