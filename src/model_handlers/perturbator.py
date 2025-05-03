@@ -1,10 +1,12 @@
 from typing import List, Dict, Optional
 import torch
+from transformers import AutoConfig
+
 
 class PerturbationGenerator:
     """Handles efficient generation of perturbed samples"""
 
-    def __init__(self, model, tokenizer, generic_prompt: str, trigger_phrases: List[str], default_temp=0.7):
+    def __init__(self, model, tokenizer, generic_prompt: str, trigger_phrases: List[str]):
         self.model = model
         self.tokenizer = tokenizer
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -19,12 +21,21 @@ class PerturbationGenerator:
         self.trigger_phrases = trigger_phrases
 
         # Default temperatures for perturbation
+        config = AutoConfig.from_pretrained(model)
+        default_temp = getattr(config, "temperature", None)
         self.default_temp = default_temp
-        self.temperatures = [
-            self.default_temp,
-            self.default_temp + (1 - self.default_temp) / 2,
-            1.0
-        ]
+        if self.default_temp == 1.0:
+            self.temperatures = [
+                1.0,
+                1.25,  # example midpoint
+                1.5  # higher than 1.0
+            ]
+        else:
+            self.temperatures = [
+                self.default_temp,
+                self.default_temp + (1 - self.default_temp) / 2,
+                1.0
+            ]
 
     def generate_for_question(self, question: str, num_samples: int = 3) -> Dict[str, List[str]]:
         """Generate all perturbations for a single question"""

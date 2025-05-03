@@ -51,11 +51,9 @@ results = []
 for index, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating"):
     input_text = row["text"]
     # Generate answers using the Perturbator
-    generated_answers = perturbator._generate_samples(
-        task="question-answering",
-        input_text=input_text,
-        num_samples=1,  # Generate one answer per input
-        temperature=0.7  # Use default temperature
+    generated_answers = perturbator.generate_for_question(
+        question=input_text,
+        num_samples=3,
     )
     # Store results
     results.append({
