@@ -86,10 +86,10 @@ class PerturbationGenerator:
                 attention_mask=attention_mask,
                 return_dict=True
             )
-            print(f"[DEBUG] Input prompt: {repr(full_prompt)}")
-            print(f"[DEBUG] Input IDs: {input_ids}")
-            print(f"[DEBUG] Attention Mask: {attention_mask}")
-            print(f"[DEBUG] Logits: {forward_outputs.logits}")
+            # print(f"[DEBUG] Input prompt: {repr(full_prompt)}")
+            # print(f"[DEBUG] Input IDs: {input_ids}")
+            # print(f"[DEBUG] Attention Mask: {attention_mask}")
+            # print(f"[DEBUG] Logits: {forward_outputs.logits}")
 
             if hasattr(forward_outputs, "logits"):
                 logits = forward_outputs.logits
