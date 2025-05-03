@@ -59,7 +59,7 @@ for index, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating"):
     results.append({
         "input": input_text,
         "generated_answers": generated_answers,  # store all samples
-        "expected_output": row["output"]
+        "expected_output": row["label"]
     })
 
 results_df = pd.DataFrame(results)
