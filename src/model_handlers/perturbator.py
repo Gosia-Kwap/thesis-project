@@ -8,7 +8,6 @@ class PerturbationGenerator:
         self.model = model
         self.tokenizer = tokenizer
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.to(self.device)
 
         # Pre-cache all prompt components
         self.base_prompt_ids = self.tokenizer.encode(generic_prompt, return_tensors='pt').to(self.device)
@@ -66,7 +65,7 @@ class PerturbationGenerator:
             return_tensors="pt",
             padding=True,
             truncation=True
-        ).to(self.device)
+        )
 
         # 3. Generate with attention mask
         with torch.no_grad():
