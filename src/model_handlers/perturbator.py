@@ -21,9 +21,7 @@ class PerturbationGenerator:
         self.trigger_phrases = trigger_phrases
 
         # Default temperatures for perturbation
-        config = AutoConfig.from_pretrained(model)
-        default_temp = getattr(config, "temperature", None)
-        self.default_temp = default_temp
+        self.default_temp = getattr(model.config, "temperature", None)
         if self.default_temp == 1.0:
             self.temperatures = [
                 1.0,
