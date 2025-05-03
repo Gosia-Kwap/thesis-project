@@ -1,8 +1,22 @@
-# Load dataset
+import os
+
+# Define paths
+scratch_dir = f"/scratch/{os.environ['USER']}/huggingface"
+tmp_dir = f"/scratch/{os.environ['USER']}/tmp"
+
+# Create directories
+os.makedirs(scratch_dir, exist_ok=True)
+os.makedirs(tmp_dir, exist_ok=True)
+
+# Set Hugging Face cache and temp dir
+os.environ["TRANSFORMERS_CACHE"] = scratch_dir
+os.environ["HF_HUB_CACHE"] = scratch_dir  # also needed sometimes
+os.environ["TMPDIR"] = tmp_dir
+
 import pandas as pd
 from dotenv import load_dotenv
 from tqdm import tqdm
-import os
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
@@ -11,11 +25,6 @@ from prompts.CoT import generic_prompt, trigger_phrases
 # Huggungface authorization
 load_dotenv()
 token = os.getenv("HUGGING_FACE_TOKEN")
-
-# Move the directory for the models to the more storage module
-scratch_dir = f"/scratch/{os.getenv('USER')}/huggingface"
-os.makedirs(scratch_dir, exist_ok=True)
-os.environ["TRANSFORMERS_CACHE"] = scratch_dir
 
 # Dataset loading
 project_dir = os.getcwd()
