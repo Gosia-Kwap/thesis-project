@@ -9,7 +9,7 @@ os.makedirs(scratch_dir, exist_ok=True)
 os.makedirs(tmp_dir, exist_ok=True)
 
 # Set Hugging Face cache and temp dir
-os.environ["TRANSFORMERS_CACHE"] = scratch_dir
+os.environ["HF_HOME"] = scratch_dir
 os.environ["HF_HUB_CACHE"] = scratch_dir  # also needed sometimes
 os.environ["TMPDIR"] = tmp_dir
 
@@ -32,8 +32,9 @@ data_path = os.path.join(project_dir, "data", "SVAMP.json")
 data = pd.read_json(data_path)
 
 # Load model and its tokenizer
+device = "cuda" if torch.cuda.is_available() else "cpu"
 model_name = "google/gemma-2-27b-it"
-tokenizer = AutoTokenizer.from_pretrained(model_name,token=token)
+tokenizer = AutoTokenizer.from_pretrained(model_name,token=token).to(device)
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     device_map="auto",
