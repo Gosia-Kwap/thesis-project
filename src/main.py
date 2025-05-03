@@ -8,27 +8,28 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
 from prompts.CoT import generic_prompt, trigger_phrases
 
-
+# Huggungface authorization
 load_dotenv()
-os.environ["HUGGINGFACE_HUB_TOKEN"] = os.getenv("HUGGING_FACE_TOKEN")
-# Get the absolute path to the project directory
-project_dir = os.getcwd()
 token = os.getenv("HUGGING_FACE_TOKEN")
 
-# Construct the full path to the dataset
-data_path = os.path.join(project_dir, "data", "SVAMP.json")
+# Move the directory for the models to the more storage module
+scratch_dir = f"/scratch/{os.getenv('USER')}/huggingface"
+os.makedirs(scratch_dir, exist_ok=True)
+os.environ["TRANSFORMERS_CACHE"] = scratch_dir
 
-# Load the dataset
+# Dataset loading
+project_dir = os.getcwd()
+data_path = os.path.join(project_dir, "data", "SVAMP.json")
 data = pd.read_json(data_path)
 
-# Step 3: Load the Gemma 2B Model and Tokenizer
+# Load model and its tokenizer
 model_name = "google/gemma-2-27b-it"
-tokenizer = AutoTokenizer.from_pretrained(model_name,use_auth_token=token)
+tokenizer = AutoTokenizer.from_pretrained(model_name,token=token)
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     device_map="auto",
     torch_dtype=torch.float16,
-    use_auth_token=token)
+    token=token)
 
 # split for questions and answers
 df = pd.DataFrame(data['Body'] + ', ' + data['Question'], columns=['text'])
