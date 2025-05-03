@@ -33,7 +33,7 @@ data = pd.read_json(data_path)
 
 # Load model and its tokenizer
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model_name = "google/gemma-2-27b-it"
+model_name = "google/gemma-2-9b-it"
 tokenizer = AutoTokenizer.from_pretrained(model_name,token=token)
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
