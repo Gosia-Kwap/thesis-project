@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --job-name=first_attempt
-#SBATCH --mem=130GB
+#SBATCH --mem=64GB
 
 module purge
 
