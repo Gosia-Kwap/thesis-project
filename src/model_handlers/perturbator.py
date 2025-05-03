@@ -80,6 +80,19 @@ class PerturbationGenerator:
         attention_mask = inputs.attention_mask.to(device)
 
         with torch.no_grad():
+            # Forward pass to check for NaNs/infs in logits
+            forward_outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                return_dict=True
+            )
+
+            if hasattr(forward_outputs, "logits"):
+                logits = forward_outputs.logits
+                if torch.isnan(logits).any() or torch.isinf(logits).any():
+                    raise ValueError("NaN or Inf detected in model logits before sampling.")
+
+            # Now do actual generation
             outputs = self.model.generate(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
