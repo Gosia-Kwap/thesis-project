@@ -24,9 +24,9 @@ class PerturbationGenerator:
         self.default_temp = getattr(model.config, "temperature", None)
         if self.default_temp == 1.0:
             self.temperatures = [
+                0.8,
                 1.0,
-                1.25,  # example midpoint
-                1.5  # higher than 1.0
+                # 1.2,
             ]
         else:
             self.temperatures = [
@@ -68,7 +68,7 @@ class PerturbationGenerator:
         trigger = trigger_phrase if trigger_phrase else next(iter(self.trigger_phrases))
         full_prompt = self.prompt + question + trigger + ' '  'Answer: \n'
 
-        # 2. Tokenize entire prompt once (more accurate for length calculation)
+        # 2. Tokenize entire prompt once
         inputs = self.tokenizer(
             full_prompt,
             return_tensors="pt",
