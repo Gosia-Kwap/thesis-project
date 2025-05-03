@@ -58,10 +58,11 @@ for index, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating"):
     # Store results
     results.append({
         "input": input_text,
-        "generated_answer": generated_answers[0],  # Take the first generated answer
+        "generated_answers": generated_answers,  # store all samples
         "expected_output": row["output"]
     })
 
 results_df = pd.DataFrame(results)
+results_df.to_json(f"results/SVAMP_perturbed_outputs_{model_name}.json", orient="records", indent=2)
 results_df.to_csv("results/SVAMP_Gemma_27b_perturbation_results.csv", index=False)
 print("Results saved to results/SVAMP_Gemma27_perturbation_results.csv")
