@@ -75,12 +75,14 @@ class PerturbationGenerator:
             padding=True,
             truncation=True
         )
+        device = self.model.device  # Make sure this is correct
+        input_ids = inputs.input_ids.to(device)
+        attention_mask = inputs.attention_mask.to(device)
 
-        # 3. Generate with attention mask
         with torch.no_grad():
             outputs = self.model.generate(
-                input_ids=inputs.input_ids,
-                attention_mask=inputs.attention_mask,
+                input_ids=input_ids,
+                attention_mask=attention_mask,
                 temperature=temperature or self.default_temp,
                 do_sample=True,
                 num_return_sequences=num_samples,
