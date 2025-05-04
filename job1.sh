@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
 # Run the script with args
-python -m src.main --model gemma9b --index-range ${START_INDEX}:${END_INDEX}
+python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX}
 
 deactivate
