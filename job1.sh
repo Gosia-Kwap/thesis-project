@@ -1,11 +1,12 @@
 #!/bin/bash
-#SBATCH --time=12:00:00
+#SBATCH --time=06:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --job-name=first_attempt
-#SBATCH --mem=64GB
+#SBATCH --array=0-9
+#SBATCH --job-name=svamp_perturb_gemma2
+#SBATCH --mem=10GB
 
 module purge
 
@@ -24,6 +25,13 @@ git pull origin main
 pip install --upgrade pip
 pip install -r requirements.txt
 
-python -m src.main
+ROWS_PER_TASK=100
+
+# Compute index range for this SLURM array task
+START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
+END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
+
+# Run the script with args
+python -m src.main --model gemma9b --index-range ${START_INDEX}:${END_INDEX}
 
 deactivate
