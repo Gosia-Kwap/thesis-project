@@ -103,7 +103,7 @@ class PerturbationGenerator:
                 temperature=temperature or self.default_temp,
                 do_sample=True,
                 num_return_sequences=num_samples,
-                max_new_tokens=100,
+                max_new_tokens=200,
                 pad_token_id=self.tokenizer.eos_token_id,
                 return_dict_in_generate=True
             )
