@@ -6,14 +6,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--start", type=int, required=True, help="Start index of the dataset to process")
 parser.add_argument("--end", type=int, required=True, help="End index (exclusive) of the dataset to process")
 parser.add_argument("--model", type=str, required=True, help="Short model name key (e.g., gemma9b)")
-parser.add_argument("--quantisation", type=str, required=False, help="If provided, gives the quantisation precision", default=False)
+parser.add_argument("--quantisation", type=bool, required=False, help="If provided, gives the quantisation precision", default=False)
 args = parser.parse_args()
 
 model_map = {
     "gemma9b": "google/gemma-2-9b-it",
     "gemma27b": "google/gemma-2-27b-it",
     "llama3": "meta-llama/Meta-Llama-3-8B-Instruct",
-    "gemma27b-quant": "google/gemma-2-27b-it-quantized",
 }
 
 # Resolve model name
