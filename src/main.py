@@ -6,12 +6,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--start", type=int, required=True, help="Start index of the dataset to process")
 parser.add_argument("--end", type=int, required=True, help="End index (exclusive) of the dataset to process")
 parser.add_argument("--model", type=str, required=True, help="Short model name key (e.g., gemma9b)")
+parser.add_argument("--quantisation", type=str, required=False, help="If provided, gives the quantisation precision", default=False)
 args = parser.parse_args()
 
 model_map = {
     "gemma9b": "google/gemma-2-9b-it",
     "gemma27b": "google/gemma-2-27b-it",
     "llama3": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "gemma27b-quant": "google/gemma-2-27b-it-quantized",
 }
 
 # Resolve model name
@@ -37,7 +39,7 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
 from prompts.CoT import generic_prompt, trigger_phrases
 
@@ -52,12 +54,24 @@ data = pd.read_json(data_path)
 
 # Load model and its tokenizer
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+if args.quantisation:
+    quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        "google/gemma-2-27b-it",
+        quantization_config=quantization_config,
+        token=token,
+        device_map="auto"
+    )
+else:
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        device_map="auto",
+        torch_dtype=torch.float16,
+        token=token)
+
 tokenizer = AutoTokenizer.from_pretrained(model_name,token=token)
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    device_map="auto",
-    torch_dtype=torch.float16,
-    token=token)
+
 
 # split for questions and answers and cut for batching
 df = pd.DataFrame(data['Body'] + ', ' + data['Question'], columns=['text'])
