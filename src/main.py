@@ -71,6 +71,9 @@ else:
 
 tokenizer = AutoTokenizer.from_pretrained(model_name,token=token)
 
+if tokenizer.pad_token is None:
+    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+
 
 # split for questions and answers and cut for batching
 df = pd.DataFrame(data['Body'] + ', ' + data['Question'], columns=['text'])
