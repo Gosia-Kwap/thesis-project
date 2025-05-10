@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=svamp_perturb_lama3
+#SBATCH --job-name=svamp_perturb_gemma27b
 #SBATCH --mem=50GB
 
 module purge
@@ -34,6 +34,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
 # Run the script with args
-python -m src.main --model llama3 --start ${START_INDEX} --end ${END_INDEX} --quantisation False
+python -m src.main --model gemma27b --start ${START_INDEX} --end ${END_INDEX} --quantisation True
 
 deactivate
