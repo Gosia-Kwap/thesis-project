@@ -10,3 +10,4 @@ tqdm
 huggingface_hub
 dotenv
 accelerate==1.6.0
+bitsandbytes==0.45.5
