@@ -57,10 +57,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if args.quantisation:
     quantization_config = BitsAndBytesConfig(load_in_8bit=True)
     model = AutoModelForCausalLM.from_pretrained(
-        "google/gemma-2-27b-it",
+        model_name,
         quantization_config=quantization_config,
         token=token,
-        device_map="auto"
+        device_map="auto",
+        load_in_8bit_fp32_cpu_offload=True
     )
 else:
     model = AutoModelForCausalLM.from_pretrained(
