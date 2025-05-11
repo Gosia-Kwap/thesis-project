@@ -55,13 +55,15 @@ data = pd.read_json(data_path)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.quantisation:
-    quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+    quantization_config = BitsAndBytesConfig(
+        load_in_8bit=True,
+        load_in_8bit_fp32_cpu_offload=True
+        )
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         quantization_config=quantization_config,
         token=token,
         device_map="auto",
-        load_in_8bit_fp32_cpu_offload=True
     )
 else:
     model = AutoModelForCausalLM.from_pretrained(
