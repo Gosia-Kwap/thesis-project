@@ -57,6 +57,11 @@ class PerturbationGenerator:
                 trigger_phrase=trigger
             )
 
+        # Original answer
+        key = "original_answer"
+        results[key] = self._generate_samples(
+            question, 1)
+
         return results
 
     def _generate_samples(self, question: str, num_samples: int,

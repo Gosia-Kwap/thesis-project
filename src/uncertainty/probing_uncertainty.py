@@ -7,9 +7,7 @@ from src.uncertainty.entailment import get_entailment_score
 
 class ProbingUncertaintyEstimator:
     """ Probing uncertainty estimation class. """
-    def __init__(self, model, tokenizer, original_answers):
-        self.model = model
-        self.tokenizer = tokenizer
+    def __init__(self, original_answers):
         self.original_answers = original_answers
 
     def compute_uncertainty(self, perturbed_list, similarity_method='cosine') -> float:
