@@ -1,10 +1,15 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+token = os.getenv("HUGGING_FACE_TOKEN")
 
 # Load the tokenizer and model
 model_name = "potsawee/deberta-v3-large-mnli"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False, token=token)
+model = AutoModelForSequenceClassification.from_pretrained(model_name, token=token)
 
 # Move model to GPU if available
 device = "cuda" if torch.cuda.is_available() else "cpu"

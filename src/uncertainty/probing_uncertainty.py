@@ -1,6 +1,6 @@
 # Description: Probing uncertainty estimation class.
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import jaccard_similarity
+from sklearn.metrics import jaccard_score
 
 from src.uncertainty.entailment import get_entailment_score
 
@@ -57,7 +57,7 @@ class ProbingUncertaintyEstimator:
         if method == 'cosine':
             return cosine_similarity(text1, text2)
         if method == 'jaccard':
-            return jaccard_similarity(text1, text2)
+            return jaccard_score(text1, text2)
         if method == 'entailment':
             return get_entailment_score(text1, text2)
         else:
