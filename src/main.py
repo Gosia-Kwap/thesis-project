@@ -1,114 +1,32 @@
-import os
 import argparse
-from src.utils.log_functions import log_message
+import load_dotenv
+import os
+from model_handlers.ModelPipeline import ModelPipeline
+from utils.log_functions import log_message
+from utils.parsers import parse_arguments_answer_generation
 
-# Argument parsing
-parser = argparse.ArgumentParser()
-parser.add_argument("--start", type=int, required=True, help="Start index of the dataset to process")
-parser.add_argument("--end", type=int, required=True, help="End index (exclusive) of the dataset to process")
-parser.add_argument("--model", type=str, required=True, help="Short model name key (e.g., gemma9b)")
-parser.add_argument("--quantisation", type=bool, required=False, help="If provided, gives the quantisation precision", default=False)
-parser.add_argument('--task', type=str, default="SVAMP",
-                    help='Task name (e.g., "SVAMP")')
-args = parser.parse_args()
 
-log_message(f"Starting execution with parameters: model={args.model}, quantisation={args.quantisation}")
+def main():
+    """Main execution flow"""
+    load_dotenv()
+    args = parse_arguments_answer_generation()
 
-model_map = {
-    "gemma9b": "google/gemma-2-9b-it",
-    "gemma27b": "google/gemma-2-27b-it",
-    "llama3": "meta-llama/Meta-Llama-3-8B-Instruct",
-}
-
-# Resolve model name
-if args.model not in model_map:
-    raise ValueError(f"Model name '{args.model}' not found in model map. Available keys: {list(model_map.keys())}")
-model_name = model_map[args.model]
-
-# Define paths
-scratch_dir = f"/scratch/{os.environ['USER']}/huggingface"
-tmp_dir = f"/scratch/{os.environ['USER']}/tmp"
-
-# Create directories
-os.makedirs(scratch_dir, exist_ok=True)
-os.makedirs(tmp_dir, exist_ok=True)
-
-# Set Hugging Face cache and temp dir
-os.environ["HF_HOME"] = scratch_dir
-os.environ["HF_HUB_CACHE"] = scratch_dir  # also needed sometimes
-os.environ["TMPDIR"] = tmp_dir
-
-import pandas as pd
-from dotenv import load_dotenv
-from tqdm import tqdm
-
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
-from prompts.CoT import generic_prompt, trigger_phrases
-
-# Huggungface authorization
-load_dotenv()
-token = os.getenv("HUGGING_FACE_TOKEN")
-
-# Dataset loading
-project_dir = os.getcwd()
-data_path = os.path.join(project_dir, "data", f"{args.task}.json")
-data = pd.read_json(data_path)
-
-# Load model and its tokenizer
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-if args.quantisation:
-    quantization_config = BitsAndBytesConfig(
-        load_in_8bit=True,
-        load_in_8bit_fp32_cpu_offload=True
-        )
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        quantization_config=quantization_config,
-        token=token,
-        device_map="auto",
+    log_message(
+        f"Starting execution with parameters:\n"
+        f"  Model: {args.model}\n"
+        f"  Quantization: {args.quantisation}\n"
+        f"  Task: {args.task}\n"
+        f"  Range: {args.start}-{args.end}"
     )
-else:
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        device_map="auto",
-        torch_dtype=torch.float16,
-        token=token)
 
-tokenizer = AutoTokenizer.from_pretrained(model_name,token=token)
-
-if tokenizer.pad_token is None:
-    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    try:
+        pipeline = ModelPipeline(args)
+        pipeline.run()
+        log_message("Processing completed successfully")
+    except Exception as e:
+        log_message(f"Error during execution: {str(e)}")
+        raise
 
 
-# split for questions and answers and cut for batching
-df = pd.DataFrame(data['Body'] + ', ' + data['Question'], columns=['text'])
-df['label'] = data['Answer']
-df = df.iloc[args.start:args.end]
-
-perturbator = Perturbator(model, tokenizer, generic_prompt, trigger_phrases)
-
-results = []
-for index, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating"):
-    input_text = row["text"]
-    # Generate answers using the Perturbator
-    generated_answers = perturbator.generate_for_question(
-        question=input_text,
-        num_samples=3,
-    )
-    # Store results
-    results.append({
-        "input": input_text,
-        "generated_answers": generated_answers,  # store all samples
-        "expected_output": row["label"]
-    })
-
-os.makedirs("results", exist_ok=True)
-output_json = f"results/SVAMP_perturbed_outputs_{args.model}_{args.start}_{args.end}.json"
-output_csv = f"results/SVAMP_perturbed_outputs_{args.model}_{args.start}_{args.end}.csv"
-
-results_df = pd.DataFrame(results)
-results_df.to_json(output_json, orient="records", indent=2)
-results_df.to_csv(output_csv, index=False)
+if __name__ == "__main__":
+    main()

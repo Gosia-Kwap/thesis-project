@@ -56,15 +56,6 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b"):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process some task results.')
-
-    parser.add_argument('--executor', type=str, default="habrok",
-                        help='Executor environment ("habrok" or local)')
-    parser.add_argument('--task', type=str, default="SVAMP",
-                        help='Task name (e.g., "SVAMP")')
-    parser.add_argument('--model', type=str, default="gemma9b",
-                        help='Model name (e.g., "gemma9b")')
-
-    args = parser.parse_args()
+    args = arg_parser_evaluation()
 
     main(executor=args.executor, task=args.task, model=args.model)
