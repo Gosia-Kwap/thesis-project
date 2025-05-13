@@ -1,13 +1,10 @@
-import argparse
-import load_dotenv
-import os
+from dotenv import load_dotenv
 from model_handlers.ModelPipeline import ModelPipeline
 from utils.log_functions import log_message
 from utils.parsers import parse_arguments_answer_generation
 
 
 def main():
-    """Main execution flow"""
     load_dotenv()
     args = parse_arguments_answer_generation()
 

@@ -6,6 +6,9 @@ from sklearn.metrics import jaccard_score
 import os
 from dotenv import load_dotenv
 from typing import List, Optional
+from src.utils.log_functions import log_message
+from src.utils.Enums import LEVEL
+
 
 load_dotenv()
 
@@ -31,6 +34,7 @@ class ProbingUncertaintyEstimator:
 
     def _load_models(self):
         """Load both classification and embedding models."""
+        log_message("Loading models for entailment and embeddings...", LEVEL.INFO)
         model_name = "potsawee/deberta-v3-large-mnli"
 
         # For entailment classification
@@ -38,6 +42,7 @@ class ProbingUncertaintyEstimator:
         self.classification_model = AutoModelForSequenceClassification.from_pretrained(
             model_name, token=self.token
         )
+        log_message("Models loaded successfully", LEVEL.INFO)
 
         # For embeddings (using base DeBERTa)
         self.embedding_model = AutoModel.from_pretrained(model_name, token=self.token)

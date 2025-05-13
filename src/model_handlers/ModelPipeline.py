@@ -4,14 +4,10 @@ Script for generating perturbed outputs from language models
 """
 
 import os
-import argparse
-import logging
 from pathlib import Path
-from typing import Dict, List, Optional
-
+from typing import Dict, List
 import pandas as pd
 import torch
-from dotenv import load_dotenv
 from tqdm import tqdm
 from transformers import (
     AutoModelForCausalLM,

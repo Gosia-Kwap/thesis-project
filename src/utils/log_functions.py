@@ -1,6 +1,3 @@
-from datetime import datetime
-
-def log_message(message):
+def log_message(message, level):
     """Helper function for consistent logging format"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] {message}")
+    print(f"[{level}] {message}")
