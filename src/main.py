@@ -1,5 +1,6 @@
 import os
 import argparse
+from src.utils.log_functions import log_message
 
 # Argument parsing
 parser = argparse.ArgumentParser()
@@ -7,7 +8,11 @@ parser.add_argument("--start", type=int, required=True, help="Start index of the
 parser.add_argument("--end", type=int, required=True, help="End index (exclusive) of the dataset to process")
 parser.add_argument("--model", type=str, required=True, help="Short model name key (e.g., gemma9b)")
 parser.add_argument("--quantisation", type=bool, required=False, help="If provided, gives the quantisation precision", default=False)
+parser.add_argument('--task', type=str, default="SVAMP",
+                    help='Task name (e.g., "SVAMP")')
 args = parser.parse_args()
+
+log_message(f"Starting execution with parameters: model={args.model}, quantisation={args.quantisation}")
 
 model_map = {
     "gemma9b": "google/gemma-2-9b-it",
@@ -48,7 +53,7 @@ token = os.getenv("HUGGING_FACE_TOKEN")
 
 # Dataset loading
 project_dir = os.getcwd()
-data_path = os.path.join(project_dir, "data", "SVAMP.json")
+data_path = os.path.join(project_dir, "data", f"{args.task}.json")
 data = pd.read_json(data_path)
 
 # Load model and its tokenizer
