@@ -2,6 +2,7 @@ import pandas as pd
 import argparse
 from src.uncertainty.probing_uncertainty import ProbingUncertaintyEstimator
 from src.utils.log_functions import log_message
+from src.utils.parsers import parse_arguments_evaluation
 
 
 def prepare_samples(generated_answers):
@@ -56,6 +57,6 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b"):
 
 
 if __name__ == "__main__":
-    args = arg_parser_evaluation()
+    args = parse_arguments_evaluation()
 
     main(executor=args.executor, task=args.task, model=args.model)

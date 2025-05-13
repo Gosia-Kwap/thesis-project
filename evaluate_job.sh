@@ -19,14 +19,11 @@ fi
 
 source ./thesis_venv/bin/activate
 
-# having automatic git pull when submitting multiple jobs creates problems when the jobs are queued -
-# e.g. all jobs are run with the same model if model argument got changed after the job submission
-#git pull origin main
 
 pip install --upgrade pip
 pip install -r requirements.txt
 
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma27b
+python -m src.evaluate_uncertainty --model gemma9b
 
 deactivate
