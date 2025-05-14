@@ -96,7 +96,8 @@ class ProbingUncertaintyEstimator:
 
     def _get_embeddings(self, texts: List[str]) -> np.ndarray:
         """Get embeddings from DeBERTa model."""
-        log_message(f"Generating embeddings for {len(texts)} texts...", self.log_level)
+        if self.log_level==LEVEL.DEBUG:
+            log_message(f"Generating embeddings for {len(texts)} texts...", self.log_level)
         start_time = time.time()
 
         try:
@@ -114,7 +115,8 @@ class ProbingUncertaintyEstimator:
                 embeddings = torch.mean(outputs.last_hidden_state, dim=1).cpu().numpy()
 
             elapsed = time.time() - start_time
-            log_message(f"Generated embeddings in {elapsed:.2f}s (shape: {embeddings.shape})",
+            if self.log_level == LEVEL.DEBUG:
+                log_message(f"Generated embeddings in {elapsed:.2f}s (shape: {embeddings.shape})",
                         self.log_level)
 
             return embeddings
@@ -191,8 +193,8 @@ class ProbingUncertaintyEstimator:
                     result = jaccard_score(binary1.flatten(), binary2.flatten())
                 else:
                     raise ValueError(f"Unknown similarity method: {method}")
-
-            log_message(f"{method} similarity result: {result:.3f}", self.log_level)
+            if self.log_level == LEVEL.DEBUG:
+                log_message(f"{method} similarity result: {result:.3f}", self.log_level)
             return result
 
         except Exception as e:
