@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
-from model_handlers.ModelPipeline import ModelPipeline
-from utils.log_functions import log_message
-from utils.parsers import parse_arguments_answer_generation
+from src.model_handlers.ModelPipeline import ModelPipeline
+from src.utils.log_functions import log_message
+from src.utils.parsers import parse_arguments_answer_generation
 
 
 def main():
