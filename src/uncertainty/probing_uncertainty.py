@@ -208,8 +208,8 @@ class ProbingUncertaintyEstimator:
         if not steps1 or not steps2:
             log_message("Empty steps provided, returning 0 similarity", self.log_level)
             return 0.0
-
-        log_message(f"Computing step similarity ({len(steps1)} vs {len(steps2)} steps)",
+        if self.log_level == LEVEL.DEBUG:
+            log_message(f"Computing step similarity ({len(steps1)} vs {len(steps2)} steps)",
                     self.log_level)
 
         start_time = time.time()
@@ -234,7 +234,8 @@ class ProbingUncertaintyEstimator:
                 result = np.mean(similarities[:min(len(steps1), len(steps2))])
 
             elapsed = time.time() - start_time
-            log_message(f"Step similarity computed in {elapsed:.2f}s: {result:.3f}",
+            if self.log_level == LEVEL.DEBUG:
+                log_message(f"Step similarity computed in {elapsed:.2f}s: {result:.3f}",
                         self.log_level)
 
             return result
