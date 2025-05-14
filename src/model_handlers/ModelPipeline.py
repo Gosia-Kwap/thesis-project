@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Script for generating perturbed outputs from language models
 """
@@ -18,7 +17,7 @@ from transformers import (
 from src.utils.log_functions import log_message
 from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
 from prompts.CoT import generic_prompt, trigger_phrases
-from src.utils.Enums import MODEL_MAP
+from src.utils.Enums import MODEL_MAP, LEVEL
 
 
 
@@ -29,6 +28,9 @@ class ModelPipeline:
         self._setup_environment()
         self._validate_arguments()
         self.device = self._get_device()
+
+        torch.cuda.empty_cache()
+
         self.model, self.tokenizer = self._load_model_and_tokenizer()
         self.data = self._load_data()
 
@@ -43,7 +45,9 @@ class ModelPipeline:
         os.environ.update({
             "HF_HOME": str(self.scratch_dir),
             "HF_HUB_CACHE": str(self.scratch_dir),
-            "TMPDIR": str(self.tmp_dir)
+            "TMPDIR": str(self.tmp_dir),
+            "TOKENIZERS_PARALLELISM": "false",  # Critical for performance
+            "PYTORCH_CUDA_ALLOC_CONF": "max_split_size_mb:128"  # Memory optimization
         })
 
     def _validate_arguments(self):
@@ -65,34 +69,40 @@ class ModelPipeline:
         """Load model and tokenizer with appropriate configuration"""
         model_name = MODEL_MAP[self.args.model]
 
-        # Load tokenizer first
+        # Load tokenizer
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
-            token=os.getenv("HUGGING_FACE_TOKEN")
+            token=os.getenv("HUGGING_FACE_TOKEN"),
+            use_fast=True,
+            padding_side="left"
         )
 
         if tokenizer.pad_token is None:
             tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
         # Model configuration
+        model_kwargs = {
+            "device_map": "auto",
+            "token": os.getenv("HUGGING_FACE_TOKEN"),
+            "low_cpu_mem_usage": True,
+            "torch_dtype": torch.float16,
+        }
+
         if self.args.quantisation:
-            quant_config = BitsAndBytesConfig(
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
                 load_in_8bit=True,
-                load_in_8bit_fp32_cpu_offload=True
+                llm_int8_skip_modules=["lm_head"],  # Critical for stability
+                llm_int8_enable_fp32_cpu_offload=True
             )
-            model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                quantization_config=quant_config,
-                device_map="auto",
-                token=os.getenv("HUGGING_FACE_TOKEN")
-            )
-        else:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                device_map="auto",
-                torch_dtype=torch.float16,
-                token=os.getenv("HUGGING_FACE_TOKEN")
-            )
+
+        log_message("Loading model...", LEVEL.INFO)
+        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+
+        # Warmup the model
+        if torch.cuda.is_available():
+            with torch.no_grad():
+                _ = model.generate(**tokenizer("Warmup", return_tensors="pt").to(self.device),
+                                   max_new_tokens=1)
 
         return model, tokenizer
 
@@ -122,16 +132,31 @@ class ModelPipeline:
         )
 
         results = []
-        for _, row in tqdm(self.data.iterrows(), total=len(self.data)):
-            generated_answers = perturbator.generate_for_question(
-                question=row["text"],
-                num_samples=3,
-            )
-            results.append({
-                "input": row["text"],
-                "generated_answers": generated_answers,
-                "expected_output": row["label"]
-            })
+        batch_size = 4
+
+        for batch_start in tqdm(range(0, len(self.data), batch_size),
+                                desc="Processing batches"):
+            batch = self.data.iloc[batch_start:batch_start + batch_size]
+
+            # Pre-allocate GPU memory
+            torch.cuda.empty_cache()
+
+            for _, row in batch.iterrows():
+                try:
+                    generated_answers = perturbator.generate_for_question(
+                        question=row["text"],
+                        num_samples=3,
+                    )
+                    results.append({
+                        "input": row["text"],
+                        "generated_answers": generated_answers,
+                        "expected_output": row["label"]
+                    })
+                except RuntimeError as e:
+                    log_message(f"Error processing row {row.name}: {str(e)}")
+                    # Reduce batch size if OOM occurs
+                    batch_size = max(1, batch_size // 2)
+                    break
 
         self._save_results(results)
 
