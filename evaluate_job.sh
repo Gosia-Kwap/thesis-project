@@ -21,7 +21,7 @@ source ./thesis_venv/bin/activate
 
 
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install --quiet -r requirements.txt
 
 # Run the script with args
 python -m src.evaluate_uncertainty --model gemma9b
