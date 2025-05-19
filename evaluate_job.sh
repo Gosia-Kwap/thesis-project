@@ -4,6 +4,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
+#SBATCH --ntasks=1
+#SBATCH --array=0-9
 #SBATCH --job-name=evaluate_current_results
 #SBATCH --mem=20GB
 
@@ -23,7 +25,13 @@ source ./thesis_venv/bin/activate
 pip install --upgrade pip
 pip install --quiet -r requirements.txt
 
+ROWS_PER_TASK=100
+
+# Compute index range for this SLURM array task
+START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
+
+
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b
+python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX}
 
 deactivate

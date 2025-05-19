@@ -41,7 +41,7 @@ def compute_uncertainty_for_row(row):
     return uncertainty
 
 
-def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b"):
+def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", index: int =None):
 
     log_message(f"Starting execution with parameters: executor={executor}, task={task}, model={model}")
 
@@ -49,13 +49,20 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b"):
         result_dir = '/home2/s4637577/thesis-project/results'
     else:
         result_dir = r"C:\Users\DELL\OneDrive\Dokumenty\studia\AI\Year3\ThesisAI\thesis-project\results"
-    dataframes = [pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{i}_{i + 100}.json") for i in
-                  range(0, 1000, 100)]
-    combined_df = pd.concat(dataframes, ignore_index=True)
-    combined_df["uncertainty"] = combined_df.apply(compute_uncertainty_for_row, axis=1)
+    if index:
+        # Load a specific index
+        df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}.json")
+        df["uncertainty"] = df.apply(compute_uncertainty_for_row, axis=1)
+        df.to_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_uncertainty.json", orient="records")
+    else:
+        dataframes = [pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{i}_{i + 100}.json") for i in
+                      range(0, 1000, 100)]
+        combined_df = pd.concat(dataframes, ignore_index=True)
+        combined_df["uncertainty"] = combined_df.apply(compute_uncertainty_for_row, axis=1)
+        combined_df.to_json(f"{result_dir}/{task}_perturbed_outputs_{model}_uncertainty.json", orient="records")
 
 
 if __name__ == "__main__":
     args = parse_arguments_evaluation()
 
-    main(executor=args.executor, task=args.task, model=args.model)
+    main(executor=args.executor, task=args.task, model=args.model, index=args.index,)

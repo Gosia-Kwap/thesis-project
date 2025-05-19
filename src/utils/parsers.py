@@ -48,6 +48,8 @@ def parse_arguments_evaluation():
                         help='Executor environment ("habrok" or local)')
     parser.add_argument('--task', type=str, default="SVAMP",
                         help='Task name (e.g., "SVAMP")')
+    parser.add_argument("--index", type=int, default=None,
+        help="Start index of the part of the dataset to process")
     parser.add_argument('--model', type=str, default="gemma9b",
                         help='Model name (e.g., "gemma9b")')
 
