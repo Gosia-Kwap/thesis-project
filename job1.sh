@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=08:00:00
+#SBATCH --time=01:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
@@ -35,6 +35,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
 # Run the script with args
-python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --quantisation False
+python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX}
 
 deactivate
