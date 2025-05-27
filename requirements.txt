@@ -1,5 +1,5 @@
 accelerate==1.6.0
-bitsandbytes==0.45.5
+bitsandbytes==0.45.5; sys_platform == "linux"
 datasets~=3.4.1
 dotenv~=0.9.9
 huggingface_hub~=0.30.2
