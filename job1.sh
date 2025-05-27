@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=05:00:00
+#SBATCH --time=07:00:00
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=svamp_perturb_gemma9b
+#SBATCH --job-name=svamp_perturb_llama3
 #SBATCH --mem=10GB
 
 module purge
@@ -35,6 +35,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
 # Run the script with args
-python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX}
+python -m src.main --model llama3 --start ${START_INDEX} --end ${END_INDEX} --quantisation
 
 deactivate
