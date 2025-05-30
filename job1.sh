@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=07:00:00
+#SBATCH --time=02:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=svamp_perturb_gemma27b
+#SBATCH --job-name=svamp_perturb_llama_test
 #SBATCH --mem=10GB
 
 module purge
