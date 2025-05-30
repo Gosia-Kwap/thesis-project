@@ -10,8 +10,9 @@ def prepare_samples(generated_answers):
     trigger_samples = []
     rephrase_samples = []  # Prep for rephrased samples
     # !!! THIS NEEDS REPLACING AFTER THE NEW RUN WITH ORIGINAL ANSWER ADDED TO THE DICT
-    original_answer = generated_answers['temp_1.00'][0]
+    # original_answer = generated_answers['temp_1.00'][0]
 
+    original_answer = generated_answers['original_answer']
     for key, samples in generated_answers.items():
         if key.startswith("temp_"):
             temperature_samples.extend(samples)
@@ -24,7 +25,6 @@ def prepare_samples(generated_answers):
 def compute_uncertainty_for_row(row):
     """ Compute uncertainty for a single DataFrame row. """
     generated_answers = row["generated_answers"]
-    # original_answer = row["text"]  # Assuming the original answer is the unperturbed input
 
     temperature_samples, trigger_samples, rephrase_samples, original_answer = prepare_samples(generated_answers)
 
