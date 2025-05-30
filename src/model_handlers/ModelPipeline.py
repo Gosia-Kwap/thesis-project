@@ -4,6 +4,21 @@ Script for generating perturbed outputs from language models
 
 import os
 from pathlib import Path
+
+# Set these BEFORE importing transformers
+scratch_dir = Path(f"/scratch/{os.environ['USER']}/huggingface")
+tmp_dir = Path(f"/scratch/{os.environ['USER']}/tmp")
+scratch_dir.mkdir(parents=True, exist_ok=True)
+tmp_dir.mkdir(parents=True, exist_ok=True)
+
+os.environ.update({
+    "HF_HOME": str(scratch_dir),
+    "HF_HUB_CACHE": str(scratch_dir),
+    "TMPDIR": str(tmp_dir),
+    "TOKENIZERS_PARALLELISM": "false",
+    "PYTORCH_CUDA_ALLOC_CONF": "max_split_size_mb:128"
+})
+
 from typing import Dict, List
 import pandas as pd
 import torch
@@ -25,7 +40,6 @@ from src.utils.Enums import MODEL_MAP, LEVEL
 class ModelPipeline:
     def __init__(self, args):
         self.args = args
-        self._setup_environment()
         self._validate_arguments()
         self.device = self._get_device()
 
@@ -41,14 +55,6 @@ class ModelPipeline:
 
         self.scratch_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir.mkdir(parents=True, exist_ok=True)
-
-        os.environ.update({
-            "HF_HOME": str(self.scratch_dir),
-            "HF_HUB_CACHE": str(self.scratch_dir),
-            "TMPDIR": str(self.tmp_dir),
-            "TOKENIZERS_PARALLELISM": "false",  # Critical for performance
-            "PYTORCH_CUDA_ALLOC_CONF": "max_split_size_mb:128"  # Memory optimization
-        })
 
     def _validate_arguments(self):
         """Validate input arguments"""
@@ -73,6 +79,7 @@ class ModelPipeline:
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             token=os.getenv("HUGGING_FACE_TOKEN"),
+            cache_dir=os.getenv("HF_HOME"),
             use_fast=True,
             padding_side="left"
         )
@@ -86,6 +93,7 @@ class ModelPipeline:
             "token": os.getenv("HUGGING_FACE_TOKEN"),
             "low_cpu_mem_usage": True,
             "torch_dtype": torch.float16,
+            "cache_dir" : os.getenv("HF_HOME")
         }
 
         if self.args.quantisation:
