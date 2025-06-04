@@ -10,8 +10,8 @@ import os
 import glob
 
 
-class UncertaintyCalibrationAnalyzer:
-    def __init__(self, result_dir, file_pattern="*_uncertainty.json", num_bins=5):
+class UncertaintyCalibrationAnalyser:
+    def __init__(self, result_dir, file_pattern="*_uncertainty.json", num_bins=5, mode='all'):
         """
         Initialize the analyzer with multiple result files
 
@@ -19,11 +19,13 @@ class UncertaintyCalibrationAnalyzer:
             result_dir (str): Path to directory containing JSON results
             file_pattern (str): Pattern to match result files
             num_bins (int): Number of bins for uncertainty segmentation
+            mode: 'all' (default) uses all answers, 'original' uses only original answers
         """
         self.result_files = self._find_result_files(result_dir, file_pattern)
         self.num_bins = num_bins
         self.df = self._load_and_preprocess_data()
         self.bin_edges = np.linspace(0, 1, num_bins + 1)
+        self.mode = mode
 
     def _find_result_files(self, result_dir, pattern):
         """Find all result files matching the pattern"""
@@ -63,12 +65,15 @@ class UncertaintyCalibrationAnalyzer:
             entry = {
                 'input': row['input'],
                 'expected_output': row['expected_output'],
-                'uncertainty': row['uncertainty']
+                'uncertainty': row['uncertainty'],
+                'original_answer': row['generated_answers']['original_answer'][0],
             }
-
             for perturb_type, answers in row['generated_answers'].items():
                 for i, answer in enumerate(answers):
-                    key = f"{perturb_type}_{i}"
+                    if perturb_type =='original_answer':
+                        key = 'original'
+                    else:
+                        key = f"{perturb_type}_{i}"
                     entry[f"{key}_answer"] = self._extract_final_answer(answer)
                     entry[f"{key}_confidence"] = self._extract_confidence(answer)
                     entry[f"{key}_correct"] = (
@@ -103,117 +108,104 @@ class UncertaintyCalibrationAnalyzer:
 
     def _extract_confidence(self, text):
         """Extract confidence percentage from model output text"""
-        confidence_match = re.search(r'Confidence[^:]*:\s*(\d+)%', text, re.IGNORECASE)
+        confidence_match = re.search(r'Overall Confidence[^:]*:\s*(\d+)%', text, re.IGNORECASE)
         return int(confidence_match.group(1)) / 100 if confidence_match else 0.5  # Default to 0.5 if not found
-
-    def _preprocess_data(self):
-        """Convert raw data into structured DataFrame for analysis"""
-        processed = []
-
-        for item in self.raw_data:
-            entry = {
-                'input': item['input'],
-                'expected_output': item['expected_output'],
-                'uncertainty': 1 - item['perceived_similarity']
-            }
-
-            for perturb_type, answers in item['generated_answers'].items():
-                for i, answer in enumerate(answers):
-                    key = f"{perturb_type}_{i}"
-                    entry[f"{key}_answer"] = self._extract_final_answer(answer)
-                    entry[f"{key}_confidence"] = self._extract_confidence(answer)
-                    entry[f"{key}_correct"] = (
-                        entry[f"{key}_answer"] == entry['expected_output']
-                        if entry[f"{key}_answer"] is not None
-                        else False
-                    )
-
-            processed.append(entry)
-
-        return pd.DataFrame(processed)
 
     def _get_uncertainty_bin(self, uncertainty):
         """Assign uncertainty value to a bin"""
         return pd.cut([uncertainty], bins=self.bin_edges, labels=range(self.num_bins))[0]
 
     def analyze_calibration(self):
-        """Perform full calibration analysis"""
-        results = []
+        # Flatten the data
+        flat_df = self._get_flattened_data()
 
-        # Flatten the dataframe for per-answer analysis
-        flat_data = []
-        for _, row in self.df.iterrows():
-            for col in [c for c in row.index if c.endswith('_answer')]:  # Changed from '_answer in c'
-                prefix = col[:-len('_answer')]
-                flat_data.append({
-                    'uncertainty': row['uncertainty'],
-                    'answer': row[col],
-                    'confidence': row[f'{prefix}_confidence'],
-                    'correct': row[f'{prefix}_correct'],
-                    'perturbation': prefix.split('_')[0],
-                    'expected': row['expected_output'],
-
-                })
-
-        flat_df = pd.DataFrame(flat_data)
-        flat_df['uncertainty_bin'] = flat_df['uncertainty'].apply(self._get_uncertainty_bin)
-
-        # Calculate bin statistics
-        bin_stats = flat_df.groupby('uncertainty_bin').agg(
-            avg_confidence=('confidence', 'mean'),
-            accuracy=('correct', 'mean'),
-            count=('correct', 'size')
-        ).reset_index()
-
-        # Calculate calibration metrics
-        prob_true, prob_pred = calibration_curve(
-            flat_df['correct'].astype(int),
-            flat_df['confidence'],
-            n_bins=self.num_bins
+        # 1. Confidence Calibration
+        conf_bins = pd.cut(flat_df['confidence'], bins=self.num_bins)
+        conf_stats = (
+            flat_df.groupby(conf_bins)
+            .agg(
+                mean_confidence=('confidence', 'mean'),
+                accuracy=('correct', 'mean'),
+                count=('correct', 'size')
+            )
+            .reset_index()
+            .dropna()
         )
+        conf_ece = self._calculate_ece(conf_stats, 'mean_confidence', len(flat_df))
 
-        ece = np.sum(
-            np.abs(bin_stats['accuracy'] - bin_stats['avg_confidence']) *
-            (bin_stats['count'] / len(flat_df))
+        # 2. Uncertainty Calibration (using 1 - uncertainty as "certainty")
+        uncert_bins = pd.cut(flat_df['uncertainty'], bins=self.num_bins)
+        uncert_stats = (
+            flat_df.groupby(uncert_bins)
+            .agg(
+                mean_uncertainty=('uncertainty', 'mean'),
+                mean_certainty=('uncertainty', lambda x: 1 - x.mean()),
+                accuracy=('correct', 'mean'),
+                count=('correct', 'size')
+            )
+            .reset_index()
+            .dropna()
         )
-
-        brier = brier_score_loss(flat_df['correct'].astype(int), flat_df['confidence'])
+        uncert_ece = self._calculate_ece(uncert_stats, 'mean_certainty', len(flat_df))
 
         return {
-            'flat_data': flat_df,
-            'bin_stats': bin_stats,
-            'calibration_curve': (prob_true, prob_pred),
-            'ece': ece,
-            'brier': brier
+            'confidence': {
+                'bin_stats': conf_stats,
+                'ece': conf_ece,
+                'calibration_curve': calibration_curve(
+                    flat_df['correct'].astype(int),
+                    flat_df['confidence'],
+                    n_bins=self.num_bins
+                )
+            },
+            'uncertainty': {
+                'bin_stats': uncert_stats,
+                'ece': uncert_ece,
+                'calibration_curve': calibration_curve(
+                    flat_df['correct'].astype(int),
+                    1 - flat_df['uncertainty'],
+                    n_bins=self.num_bins
+                )
+            }
         }
 
-    def plot_calibration(self, analysis_results, save_path=None):
-        """Visualize calibration results"""
-        plt.figure(figsize=(10, 6))
+    def _get_flattened_data(self):
+        flat_data = []
+        for _, row in self.df.iterrows():
+            if self.mode == 'original':
+                # Only process original answer
+                flat_data.append({
+                    'uncertainty': row['uncertainty'],
+                    'answer': row['original_answer'],
+                    'confidence': row.get('original_confidence', 0.5),
+                    'correct': row['original_correct'],
+                    'perturbation': 'original',
+                    'expected': row['expected_output']
+                })
+            else:
+                # Process all answers (original mode)
+                for col in [c for c in row.index if c.endswith('_answer')]:
+                    prefix = col[:-len('_answer')]
+                    flat_data.append({
+                        'uncertainty': row['uncertainty'],
+                        'answer': row[col],
+                        'confidence': row[f'{prefix}_confidence'],
+                        'correct': row[f'{prefix}_correct'],
+                        'perturbation': prefix.split('_')[0],
+                        'expected': row['expected_output'],
 
-        # Reliability diagram
-        plt.plot(
-            analysis_results['bin_stats']['avg_confidence'],
-            analysis_results['bin_stats']['accuracy'],
-            's-',
-            label='Model'
+                    })
+        return pd.DataFrame(flat_data)
+
+    def _calculate_ece(self, bin_stats, pred_col, total_samples):
+        """Generic ECE calculation that works for both metrics"""
+        return np.sum(
+            np.abs(bin_stats['accuracy'] - bin_stats[pred_col]) *
+            (bin_stats['count'] / total_samples)
         )
-        plt.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
-
-        plt.xlabel('Mean predicted confidence')
-        plt.ylabel('Fraction of correct answers')
-        plt.title(f'Reliability Diagram\nECE = {analysis_results["ece"]:.3f}, Brier = {analysis_results["brier"]:.3f}')
-        plt.legend()
-        plt.grid(True)
-
-        if save_path:
-            plt.savefig(save_path)
-        else:
-            plt.show()
-
-        plt.close()
 
     def save_results(self, analysis_results, output_path):
+        # NEEDS ADJUSTMENT!!!!
         """Save analysis results to JSON file"""
         results = {
             'metrics': {
@@ -229,4 +221,31 @@ class UncertaintyCalibrationAnalyzer:
 
         with open(output_path, 'w') as f:
             json.dump(results, f, indent=2)
+
+    def plot_comparison(self, analysis_results, save_path=None):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+        # Confidence plot
+        conf = analysis_results['confidence']
+        ax1.plot(conf['calibration_curve'][1], conf['calibration_curve'][0], 's-')
+        ax1.set_title(f'Confidence Calibration (ECE={conf["ece"]:.3f})')
+
+        # Uncertainty plot (note: 1-uncertainty = "certainty")
+        uncert = analysis_results['uncertainty']
+        ax2.plot(uncert['bin_stats']['mean_certainty'],
+                 uncert['bin_stats']['accuracy'], 'o-')
+        ax2.set_title(f'Uncertainty Calibration (ECE={uncert["ece"]:.3f})')
+
+        for ax in (ax1, ax2):
+            ax.plot([0, 1], [0, 1], 'k--')
+            ax.set_xlabel('Predicted Probability')
+            ax.set_ylabel('Actual Accuracy')
+            ax.grid(True)
+
+        if save_path:
+            plt.savefig(save_path)
+        else:
+            plt.show()
+
+        plt.close()
 
