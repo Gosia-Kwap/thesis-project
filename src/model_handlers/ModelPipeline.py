@@ -116,7 +116,7 @@ class ModelPipeline:
 
     def _load_data(self) -> pd.DataFrame:
         """Load and prepare dataset"""
-        data_path = Path("data") / f"{self.args.task}.json"
+        data_path = Path("data") / f"{self.args.task}_rephrased.json"
         if not data_path.exists():
             raise FileNotFoundError(f"Data file not found: {data_path}")
 
