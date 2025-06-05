@@ -122,7 +122,9 @@ class ModelPipeline:
 
         data = pd.read_json(data_path)
         df = pd.DataFrame({
-            'text': data['Body'] + ', ' + data['Question'],
+            'text': data['Body'],
+            'question' : data['Question'],
+            'rephrased' : data['Rephrased'] if 'Rephrased' in data else None,
             'label': data['Answer']
         })
 
@@ -152,8 +154,10 @@ class ModelPipeline:
             for _, row in batch.iterrows():
                 try:
                     generated_answers = perturbator.generate_for_question(
-                        question=row["text"],
+                        text=row["text"],
+                        question=row["question"],
                         num_samples=3,
+                        rephrased_questions=row["rephrased"] if "rephrased" in row else None,
                     )
                     results.append({
                         "input": row["text"],
@@ -173,11 +177,10 @@ class ModelPipeline:
         output_dir = Path("results")
         output_dir.mkdir(exist_ok=True)
 
-        base_name = f"{self.args.task}_perturbed_outputs_{self.args.model}_{self.args.start}_{self.args.end}"
-
         results_df = pd.DataFrame(results)
         quantisation_suffix = f"_{self.args.quantisation}" if self.args.quantisation else ""
         base_name = f"{self.args.task}_perturbed_outputs_{self.args.model}_{self.args.start}_{self.args.end}{quantisation_suffix}"
+        results_df.to_json(output_dir / f"{base_name}.json", orient="records", indent=2)
 
 
         log_message(f"Results saved to {output_dir}/{base_name}.*")
