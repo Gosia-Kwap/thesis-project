@@ -2,9 +2,11 @@ import re
 import json
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import brier_score_loss
+import scipy.stats as stats
 
 import os
 import glob
@@ -70,7 +72,7 @@ class UncertaintyCalibrationAnalyser:
             }
             for perturb_type, answers in row['generated_answers'].items():
                 for i, answer in enumerate(answers):
-                    if perturb_type =='original_answer':
+                    if perturb_type == 'original_answer':
                         key = 'original'
                     else:
                         key = f"{perturb_type}_{i}"
@@ -108,8 +110,8 @@ class UncertaintyCalibrationAnalyser:
 
     def _extract_confidence(self, text):
         """Extract confidence percentage from model output text"""
-        confidence_match = re.search(r'Overall Confidence[^:]*:\s*(\d+)%', text, re.IGNORECASE)
-        return int(confidence_match.group(1)) / 100 if confidence_match else 0.5  # Default to 0.5 if not found
+        confidence_match = re.search(r'Overall Confidence(?:\(0-100\))?[^:]*:\s*\d+,\s*(\d+)%', text, re.IGNORECASE)
+        return int(confidence_match.group(1)) / 100 if confidence_match else None  # Default to 0.5 if not found
 
     def _get_uncertainty_bin(self, uncertainty):
         """Assign uncertainty value to a bin"""
@@ -120,9 +122,10 @@ class UncertaintyCalibrationAnalyser:
         flat_df = self._get_flattened_data()
 
         # 1. Confidence Calibration
-        conf_bins = pd.cut(flat_df['confidence'], bins=self.num_bins)
+        conf_df = flat_df[flat_df['confidence'].notna()]
+        conf_bins = pd.cut(conf_df['confidence'], bins=self.num_bins)
         conf_stats = (
-            flat_df.groupby(conf_bins)
+            conf_df.groupby(conf_bins)
             .agg(
                 mean_confidence=('confidence', 'mean'),
                 accuracy=('correct', 'mean'),
@@ -131,10 +134,10 @@ class UncertaintyCalibrationAnalyser:
             .reset_index()
             .dropna()
         )
-        conf_ece = self._calculate_ece(conf_stats, 'mean_confidence', len(flat_df))
+        conf_ece = self._calculate_ece(conf_stats, 'mean_confidence', len(conf_df))
 
         # 2. Uncertainty Calibration (using 1 - uncertainty as "certainty")
-        uncert_bins = pd.cut(flat_df['uncertainty'], bins=self.num_bins)
+        uncert_bins = pd.cut(conf_df['uncertainty'], bins=self.num_bins)
         uncert_stats = (
             flat_df.groupby(uncert_bins)
             .agg(
@@ -153,8 +156,8 @@ class UncertaintyCalibrationAnalyser:
                 'bin_stats': conf_stats,
                 'ece': conf_ece,
                 'calibration_curve': calibration_curve(
-                    flat_df['correct'].astype(int),
-                    flat_df['confidence'],
+                    conf_df['correct'].astype(int),
+                    conf_df['confidence'],
                     n_bins=self.num_bins
                 )
             },
@@ -222,6 +225,62 @@ class UncertaintyCalibrationAnalyser:
         with open(output_path, 'w') as f:
             json.dump(results, f, indent=2)
 
+    def generate_confidence_comparison(self, save_path=None, variable='confidence'):
+        flat_df = self._get_flattened_data()
+        self._plot_confidence_distribution(flat_df, variable, save_path)
+
+        return self._perform_statistical_tests(flat_df, variable)
+
+    def _plot_confidence_distribution(self, df, variable, save_path):
+        plt.figure(figsize=(12, 6))
+        sns.set(style="whitegrid")
+        if variable == 'uncertainty':
+            df[variable] = 1 - df[variable]
+
+        # Corrected boxplot without unsupported args
+        ax = sns.boxplot(
+            x="perturbation",
+            y=variable,
+            hue="correct",
+            data=df,
+            palette={True: "green", False: "red"}
+        )
+
+        plt.title(f"{variable} Distribution by Answer Correctness", pad=20)
+        plt.xlabel("Perturbation Type")
+        plt.ylabel(f"{variable} Score")
+        plt.legend(title="Correct Answer", loc="upper right")
+        sns.despine()
+
+        if save_path:
+            plt.savefig(save_path, bbox_inches='tight', dpi=300)
+        else:
+            plt.show()
+
+        plt.close()
+
+    def _perform_statistical_tests(self, df, variable):
+        results = []
+
+        for perturbation in df['perturbation'].unique():
+            correct = df[(df['perturbation'] == perturbation) & (df['correct'])][variable]
+            incorrect = df[(df['perturbation'] == perturbation) & (~df['correct'])][variable]
+
+            if len(correct) > 1 and len(incorrect) > 1:
+                t_stat, p_value = stats.ttest_ind(correct, incorrect, equal_var=False)
+
+                results.append({
+                    'perturbation': perturbation,
+                    'mean_correct': correct.mean(),
+                    'mean_incorrect': incorrect.mean(),
+                    't_statistic': t_stat,
+                    'p_value': p_value,
+                    'n_correct': len(correct),
+                    'n_incorrect': len(incorrect)
+                })
+
+        return pd.DataFrame(results)
+
     def plot_comparison(self, analysis_results, save_path=None):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
@@ -242,10 +301,7 @@ class UncertaintyCalibrationAnalyser:
             ax.set_ylabel('Actual Accuracy')
             ax.grid(True)
 
-        if save_path:
-            plt.savefig(save_path)
-        else:
-            plt.show()
+        plt.show()
 
         plt.close()
 
