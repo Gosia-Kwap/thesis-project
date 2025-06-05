@@ -72,7 +72,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     input_path = Path("data") / f"{args.task}.json"
-    output_path = Path(args.out_dir) / f"{args.task}_rephrased.json"
+    output_path = Path("data") / f"{args.task}_rephrased.json"
 
     if not input_path.exists():
         raise FileNotFoundError(f"Data file not found: {input_path}")
