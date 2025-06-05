@@ -27,7 +27,7 @@ def batch_rephrase_questions(questions, tokenizer, model, device, num_return_seq
                 num_beams=10,
                 do_sample=True,
                 num_return_sequences=num_return_sequences,
-                temperature=1.5,
+                temperature=1,
                 top_k=50,
                 top_p=0.95,
                 early_stopping=True
