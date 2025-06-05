@@ -176,8 +176,9 @@ class ModelPipeline:
         base_name = f"{self.args.task}_perturbed_outputs_{self.args.model}_{self.args.start}_{self.args.end}"
 
         results_df = pd.DataFrame(results)
-        results_df.to_json(output_dir / f"{base_name}.json", orient="records", indent=2)
-        results_df.to_csv(output_dir / f"{base_name}.csv", index=False)
+        quantisation_suffix = f"_{self.args.quantisation}" if self.args.quantisation else ""
+        base_name = f"{self.args.task}_perturbed_outputs_{self.args.model}_{self.args.start}_{self.args.end}{quantisation_suffix}"
+
 
         log_message(f"Results saved to {output_dir}/{base_name}.*")
 
