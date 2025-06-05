@@ -159,9 +159,6 @@ class ProbingUncertaintyEstimator:
                 "entailment": probs[2].item()
             } if return_probs else torch.argmax(logits, dim=1).item() - 1
 
-            elapsed = time.time() - start_time
-            log_message(f"Entailment computed in {elapsed:.3f}s: {result}", self.log_level)
-
             return result
 
         except Exception as e:
@@ -187,10 +184,6 @@ class ProbingUncertaintyEstimator:
 
                 if method == 'cosine':
                     result = cosine_similarity(emb1.reshape(1, -1), emb2.reshape(1, -1))[0][0]
-                elif method == 'jaccard':
-                    binary1 = (emb1 > np.mean(emb1)).astype(int)
-                    binary2 = (emb2 > np.mean(emb2)).astype(int)
-                    result = jaccard_score(binary1.flatten(), binary2.flatten())
                 else:
                     raise ValueError(f"Unknown similarity method: {method}")
             if self.log_level == LEVEL.DEBUG:
@@ -220,16 +213,13 @@ class ProbingUncertaintyEstimator:
                 for j, step2 in enumerate(steps2):
                     sim = self._semantic_similarity(step1, step2, method)
                     similarities.append(sim)
-                    if self.log_level == LEVEL.DEBUG:
-                        log_message(f"Step {i}-{j} similarity: {sim:.3f}", self.log_level)
 
             if len(steps1) != len(steps2):
                 sim_matrix = np.array(similarities).reshape(len(steps1), len(steps2))
                 row_max = sim_matrix.max(axis=1).mean()
                 col_max = sim_matrix.max(axis=0).mean()
                 result = max(row_max, col_max)
-                log_message(f"Uneven steps - using max alignment (row: {row_max:.3f}, col: {col_max:.3f})",
-                            self.log_level)
+
             else:
                 result = np.mean(similarities[:min(len(steps1), len(steps2))])
 
@@ -252,25 +242,18 @@ class ProbingUncertaintyEstimator:
             log_message("No perturbed samples provided, returning 0 uncertainty", self.log_level)
             return 0.0
 
-        log_message(f"Computing uncertainty from {len(perturbed_samples)} samples using {method}...",
-                    self.log_level)
-
         start_time = time.time()
         similarities = []
 
         for i, sample in enumerate(perturbed_samples):
-            log_message(f"Processing sample {i + 1}/{len(perturbed_samples)}...", self.log_level)
             sample_steps = self._preprocess_steps(sample)
             similarity = self._step_similarity(self.original_steps, sample_steps, method)
             similarities.append(similarity)
-            log_message(f"Sample {i + 1} similarity: {similarity:.3f}", self.log_level)
 
         avg_similarity = sum(similarities) / len(similarities)
         uncertainty = 1 - avg_similarity
 
         elapsed = time.time() - start_time
-        log_message(f"Uncertainty computation completed in {elapsed:.2f}s: {uncertainty:.3f}",
-                    self.log_level)
 
         return uncertainty
 
@@ -285,7 +268,8 @@ class ProbingUncertaintyEstimator:
         """
         Combined uncertainty estimate from different perturbation types.
         """
-        log_message("Starting combined uncertainty estimation...", self.log_level)
+        if self.log_level == LEVEL.DEBUG:
+            log_message("Starting combined uncertainty estimation...", self.log_level)
         start_time = time.time()
 
         try:
@@ -293,19 +277,22 @@ class ProbingUncertaintyEstimator:
             sample_types = []
 
             if temperature_samples:
-                log_message(f"Processing {len(temperature_samples)} temperature samples...",
+                if self.log_level == LEVEL.DEBUG:
+                    log_message(f"Processing {len(temperature_samples)} temperature samples...",
                             self.log_level)
                 uncertainties.append(self.compute_uncertainty(temperature_samples, method))
                 sample_types.append("temperature")
 
             if trigger_samples:
-                log_message(f"Processing {len(trigger_samples)} trigger samples...",
+                if self.log_level == LEVEL.DEBUG:
+                    log_message(f"Processing {len(trigger_samples)} trigger samples...",
                             self.log_level)
                 uncertainties.append(self.compute_uncertainty(trigger_samples, method))
                 sample_types.append("trigger")
 
             if rephrase_samples:
-                log_message(f"Processing {len(rephrase_samples)} rephrase samples...",
+                if self.log_level == LEVEL.DEBUG:
+                    log_message(f"Processing {len(rephrase_samples)} rephrase samples...",
                             self.log_level)
                 uncertainties.append(self.compute_uncertainty(rephrase_samples, method))
                 sample_types.append("rephrase")
@@ -315,15 +302,15 @@ class ProbingUncertaintyEstimator:
 
             if weights and len(weights) == len(uncertainties):
                 result = sum(w * u for w, u in zip(weights, uncertainties)) / sum(weights)
-                log_message(f"Weighted uncertainty: {result:.3f} (weights: {weights})",
-                            self.log_level)
             else:
                 result = sum(uncertainties) / len(uncertainties)
-                log_message(f"Average uncertainty: {result:.3f}", self.log_level)
+                if self.log_level == LEVEL.DEBUG:
+                    log_message(f"Average uncertainty: {result:.3f}", self.log_level)
 
             elapsed = time.time() - start_time
             total_time = time.time() - self._init_time
-            log_message(f"Uncertainty estimation completed in {elapsed:.2f}s (total: {total_time:.2f}s)\n"
+            if self.log_level == LEVEL.DEBUG:
+                log_message(f"Uncertainty estimation completed in {elapsed:.2f}s (total: {total_time:.2f}s)\n"
                         f"Final uncertainty: {result:.3f}", self.log_level)
 
             return result
