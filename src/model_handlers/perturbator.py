@@ -2,11 +2,15 @@ from typing import List, Dict, Optional
 import torch
 from transformers import AutoConfig
 
+from src.utils.log_functions import log_message
+from src.utils.Enums import LEVEL
+
 
 class PerturbationGenerator:
     """Handles efficient generation of perturbed samples"""
 
-    def __init__(self, model, tokenizer, generic_prompt: str, trigger_phrases: List[str]):
+    def __init__(self, model, tokenizer, generic_prompt: str, trigger_phrases: List[str], level: LEVEL = LEVEL.INFO):
+        self.level = level
         self.model = model
         self.tokenizer = tokenizer
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,15 +39,15 @@ class PerturbationGenerator:
                 1.0
             ]
 
-    def generate_for_question(self, question: str, num_samples: int = 3) -> Dict[str, List[str]]:
+    def generate_for_question(self, text: str, question: str, num_samples: int = 3, rephrased_questions: list = None) -> Dict[str, List[str]]:
         """Generate all perturbations for a single question"""
         results = {}
-
+        full_question = text + ". " + question
         # Temperature perturbations
         for temp in self.temperatures:
             key = f"temp_{temp:.2f}"
             results[key] = self._generate_samples(
-                question=question,
+                question=full_question,
                 num_samples=num_samples,
                 temperature=temp
             )
@@ -52,15 +56,25 @@ class PerturbationGenerator:
         for trigger in self.trigger_cache:
             key = f"trigger_{trigger[:10]}"
             results[key] = self._generate_samples(
-                question=question,
+                question=full_question,
                 num_samples=num_samples,
                 trigger_phrase=trigger
             )
 
+        # Rephrased question perturbation
+        if rephrased_questions is not None:
+            for rephrased in rephrased_questions:
+                rephrased_question = text + ' ' + rephrased
+                key = f"rephrased_{rephrased[:10]}"
+                results[key] = self._generate_samples(
+                    question=rephrased_question,
+                    num_samples=2,
+                )
+
         # Original answer
         key = "original_answer"
         results[key] = self._generate_samples(
-            question, 1)
+            full_question, 1)
 
         return results
 
@@ -91,10 +105,11 @@ class PerturbationGenerator:
                 attention_mask=attention_mask,
                 return_dict=True
             )
-            # print(f"[DEBUG] Input prompt: {repr(full_prompt)}")
-            # print(f"[DEBUG] Input IDs: {input_ids}")
-            # print(f"[DEBUG] Attention Mask: {attention_mask}")
-            # print(f"[DEBUG] Logits: {forward_outputs.logits}")
+            if self.level == LEVEL.DEBUG:
+                log_message("Input prompt: {repr(full_prompt)}", level=LEVEL.DEBUG)
+                log_message(f"[DEBUG] Input IDs: {input_ids}", level=LEVEL.DEBUG)
+                log_message(f"[DEBUG] Attention Mask: {attention_mask}", level=LEVEL.DEBUG)
+                log_message(f"[DEBUG] Logits: {forward_outputs.logits}", level=LEVEL.DEBUG)
 
             if hasattr(forward_outputs, "logits"):
                 logits = forward_outputs.logits
