@@ -136,7 +136,6 @@ class ProbingUncertaintyEstimator:
             log_message(f"Computing entailment between:\n  Text1: {text1[:50]}...\n  Text2: {text2[:50]}...",
                         self.log_level)
 
-        start_time = time.time()
 
         try:
             inputs = self.tokenizer(
@@ -197,42 +196,47 @@ class ProbingUncertaintyEstimator:
     def _step_similarity(self, steps1: List[str], steps2: List[str], method: str = 'cosine') -> float:
         """
         Compute average similarity between aligned steps.
+        - If the step lists have equal length: compare step[i] to step[i].
+        - If unequal: compare each step in the shorter list to the best-matching step in the longer one.
         """
         if not steps1 or not steps2:
             log_message("Empty steps provided, returning 0 similarity", self.log_level)
             return 0.0
+
         if self.log_level == LEVEL.DEBUG:
-            log_message(f"Computing step similarity ({len(steps1)} vs {len(steps2)} steps)",
-                    self.log_level)
+            log_message(f"Computing step similarity ({len(steps1)} vs {len(steps2)} steps)", self.log_level)
 
         start_time = time.time()
 
         try:
-            similarities = []
-            for i, step1 in enumerate(steps1):
-                for j, step2 in enumerate(steps2):
-                    sim = self._semantic_similarity(step1, step2, method)
-                    similarities.append(sim)
-
-            if len(steps1) != len(steps2):
-                sim_matrix = np.array(similarities).reshape(len(steps1), len(steps2))
-                row_max = sim_matrix.max(axis=1).mean()
-                col_max = sim_matrix.max(axis=0).mean()
-                result = max(row_max, col_max)
-
+            if len(steps1) == len(steps2):
+                # Aligned step-to-step comparison
+                similarities = [
+                    self._semantic_similarity(s1, s2, method)
+                    for s1, s2 in zip(steps1, steps2)
+                ]
+                result = np.mean(similarities)
             else:
-                result = np.mean(similarities[:min(len(steps1), len(steps2))])
+                # Greedy matching shorter list aligned to best matches in longer list
+                short, long = (steps1, steps2) if len(steps1) < len(steps2) else (steps2, steps1)
+                similarities = []
+                for s1 in short:
+                    best_sim = max(
+                        self._semantic_similarity(s1, s2, method)
+                        for s2 in long
+                    )
+                    similarities.append(best_sim)
+                result = np.mean(similarities)
 
             elapsed = time.time() - start_time
             if self.log_level == LEVEL.DEBUG:
-                log_message(f"Step similarity computed in {elapsed:.2f}s: {result:.3f}",
-                        self.log_level)
+                log_message(f"Step similarity computed in {elapsed:.2f}s: {result:.3f}", self.log_level)
 
             return result
 
         except Exception as e:
-            log_message(f"Step similarity computation failed: {str(e)}", LEVEL.ERROR)
-            raise
+            log_message(f"Step similarity computation failed: {e}", self.log_level)
+            return 0.0
 
     def compute_uncertainty(self, perturbed_samples: List[str], method: str = 'cosine') -> float:
         """
@@ -253,7 +257,6 @@ class ProbingUncertaintyEstimator:
         avg_similarity = sum(similarities) / len(similarities)
         uncertainty = 1 - avg_similarity
 
-        elapsed = time.time() - start_time
 
         return uncertainty
 
@@ -263,58 +266,29 @@ class ProbingUncertaintyEstimator:
             trigger_samples: Optional[List[str]] = None,
             rephrase_samples: Optional[List[str]] = None,
             method: str = 'cosine',
-            weights: Optional[List[float]] = None
-    ) -> float:
+    ) -> Dict[str, float]:
         """
-        Combined uncertainty estimate from different perturbation types.
+        Compute average uncertainty per perturbation method and overall average.
+        Returns a dictionary with keys: 'temp', 'trigger', 'rephrase', 'overall'.
         """
-        if self.log_level == LEVEL.DEBUG:
-            log_message("Starting combined uncertainty estimation...", self.log_level)
-        start_time = time.time()
+        uncertainties = {}
 
-        try:
-            uncertainties = []
-            sample_types = []
+        if temperature_samples:
+            temp_uncertainty = self.compute_uncertainty(temperature_samples, method)
+            uncertainties['temp'] = np.mean(temp_uncertainty)
 
-            if temperature_samples:
-                if self.log_level == LEVEL.DEBUG:
-                    log_message(f"Processing {len(temperature_samples)} temperature samples...",
-                            self.log_level)
-                uncertainties.append(self.compute_uncertainty(temperature_samples, method))
-                sample_types.append("temperature")
+        if trigger_samples:
+            trigger_uncertainty = self.compute_uncertainty(trigger_samples, method)
+            uncertainties['trigger'] = np.mean(trigger_uncertainty)
 
-            if trigger_samples:
-                if self.log_level == LEVEL.DEBUG:
-                    log_message(f"Processing {len(trigger_samples)} trigger samples...",
-                            self.log_level)
-                uncertainties.append(self.compute_uncertainty(trigger_samples, method))
-                sample_types.append("trigger")
+        if rephrase_samples:
+            rephrase_uncertainty = self.compute_uncertainty(rephrase_samples, method)
+            uncertainties['rephrase'] = np.mean(rephrase_uncertainty)
 
-            if rephrase_samples:
-                if self.log_level == LEVEL.DEBUG:
-                    log_message(f"Processing {len(rephrase_samples)} rephrase samples...",
-                            self.log_level)
-                uncertainties.append(self.compute_uncertainty(rephrase_samples, method))
-                sample_types.append("rephrase")
+        if not uncertainties:
+            raise ValueError("No perturbed samples provided")
 
-            if not uncertainties:
-                raise ValueError("No perturbed samples provided")
+        # Compute overall average across available methods
+        uncertainties['overall'] = np.mean(list(uncertainties.values()))
 
-            if weights and len(weights) == len(uncertainties):
-                result = sum(w * u for w, u in zip(weights, uncertainties)) / sum(weights)
-            else:
-                result = sum(uncertainties) / len(uncertainties)
-                if self.log_level == LEVEL.DEBUG:
-                    log_message(f"Average uncertainty: {result:.3f}", self.log_level)
-
-            elapsed = time.time() - start_time
-            total_time = time.time() - self._init_time
-            if self.log_level == LEVEL.DEBUG:
-                log_message(f"Uncertainty estimation completed in {elapsed:.2f}s (total: {total_time:.2f}s)\n"
-                        f"Final uncertainty: {result:.3f}", self.log_level)
-
-            return result
-
-        except Exception as e:
-            log_message(f"Uncertainty estimation failed: {str(e)}", LEVEL.ERROR)
-            raise
+        return uncertainties
