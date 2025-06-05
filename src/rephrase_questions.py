@@ -5,7 +5,7 @@ import torch
 from tqdm import tqdm
 from pathlib import Path
 
-def batch_rephrase_questions(questions, tokenizer, model, device, num_return_sequences=5, batch_size=16):
+def batch_rephrase_questions(questions, tokenizer, model, device, num_return_sequences=3, batch_size=16):
     all_rephrased = []
     for i in tqdm(range(0, len(questions), batch_size), desc="Batch Rephrasing"):
         batch = questions[i:i+batch_size]
