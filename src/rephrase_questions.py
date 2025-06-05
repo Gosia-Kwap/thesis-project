@@ -9,7 +9,7 @@ def batch_rephrase_questions(questions, tokenizer, model, device, num_return_seq
     all_rephrased = []
     for i in tqdm(range(0, len(questions), batch_size), desc="Batch Rephrasing"):
         batch = questions[i:i+batch_size]
-        inputs = [f"paraphrase the question while remaining question form: {q} </s>" for q in batch]
+        inputs = [f"paraphrase the question. The sense must be the same but use synonyms: {q} </s>" for q in batch]
 
         encodings = tokenizer(
             inputs,
@@ -28,7 +28,7 @@ def batch_rephrase_questions(questions, tokenizer, model, device, num_return_seq
                 do_sample=True,
                 num_return_sequences=num_return_sequences,
                 temperature=1.5,
-                top_k=120,
+                top_k=50,
                 top_p=0.95,
                 early_stopping=True
             )
