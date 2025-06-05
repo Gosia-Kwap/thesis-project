@@ -49,7 +49,7 @@ def main(input_path='questions.json', output_path='questions_rephrased.json', ba
     questions = [item['Question'] for item in data]
 
     # Load model and tokenizer
-    model_name = "Vamsi/T5_Paraphrase_Paws"
+    model_name = "ramsrigouthamg/t5_paraphraser"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
