@@ -107,9 +107,9 @@ class PerturbationGenerator:
             )
             if self.level == LEVEL.DEBUG:
                 log_message("Input prompt: {repr(full_prompt)}", level=LEVEL.DEBUG)
-                log_message(f"[DEBUG] Input IDs: {input_ids}", level=LEVEL.DEBUG)
-                log_message(f"[DEBUG] Attention Mask: {attention_mask}", level=LEVEL.DEBUG)
-                log_message(f"[DEBUG] Logits: {forward_outputs.logits}", level=LEVEL.DEBUG)
+                log_message(f"Input IDs: {input_ids}", level=LEVEL.DEBUG)
+                log_message(f"Attention Mask: {attention_mask}", level=LEVEL.DEBUG)
+                log_message(f"Logits: {forward_outputs.logits}", level=LEVEL.DEBUG)
 
             if hasattr(forward_outputs, "logits"):
                 logits = forward_outputs.logits
