@@ -44,10 +44,7 @@ class UncertaintyCalibrationAnalyser:
             try:
                 with open(file, 'r') as f:
                     data = json.load(f)
-
-                # Convert single file data to DataFrame format
-                file_df = pd.DataFrame(data)
-                dfs.append(file_df)
+                dfs.append(pd.DataFrame(data))
             except Exception as e:
                 print(f"Error loading {file}: {str(e)}")
                 continue
@@ -55,63 +52,7 @@ class UncertaintyCalibrationAnalyser:
         if not dfs:
             raise ValueError("No valid data files could be loaded")
 
-        # Combine all DataFrames and reset index
-        combined_df = pd.concat(dfs, ignore_index=True)
-        return self._preprocess_dataframe(combined_df)
-
-    def _preprocess_dataframe(self, df):
-        """Preprocess the combined DataFrame"""
-        # Convert your specific format here
-        processed = []
-        for _, row in df.iterrows():
-            entry = {
-                'input': row['input'],
-                'expected_output': row['expected_output'],
-                'uncertainty': row['uncertainty'],
-                'original_answer': row['generated_answers']['original_answer'][0],
-            }
-            for perturb_type, answers in row['generated_answers'].items():
-                for i, answer in enumerate(answers):
-                    if perturb_type == 'original_answer':
-                        key = 'original'
-                    else:
-                        key = f"{perturb_type}_{i}"
-                    entry[f"{key}_answer"] = self._extract_final_answer(answer)
-                    entry[f"{key}_confidence"] = self._extract_confidence(answer)
-                    entry[f"{key}_correct"] = (
-                        entry[f"{key}_answer"] == entry['expected_output']
-                        if entry[f"{key}_answer"] is not None
-                        else False
-                    )
-
-            processed.append(entry)
-
-        return pd.DataFrame(processed)
-
-    def _extract_final_answer(self, text):
-        """Extract the final numerical answer from model output text"""
-        # Priority 1: Look for "Final Answer" pattern
-        final_answer_match = re.search(r'Final Answer[^:]*:\s*(\d+)', text, re.IGNORECASE)
-        if final_answer_match:
-            return int(final_answer_match.group(1))
-
-        # Priority 2: Find last equation result
-        equations = re.findall(r'(\d+\s*[+\-*/]\s*\d+\s*=\s*\d+)', text)
-        if equations:
-            last_eq = equations[-1].split('=')[-1].strip()
-            return int(last_eq)
-
-        # Priority 3: Find last standalone number (fallback)
-        numbers = re.findall(r'\b\d+\b', text)
-        if numbers:
-            return int(numbers[-1])
-
-        return None
-
-    def _extract_confidence(self, text):
-        """Extract confidence percentage from model output text"""
-        confidence_match = re.search(r'Overall Confidence(?:\(0-100\))?[^:]*:\s*\d+,\s*(\d+)%', text, re.IGNORECASE)
-        return int(confidence_match.group(1)) / 100 if confidence_match else None  # Default to 0.5 if not found
+        return pd.concat(dfs, ignore_index=True)
 
     def _get_uncertainty_bin(self, uncertainty):
         """Assign uncertainty value to a bin"""
@@ -137,7 +78,7 @@ class UncertaintyCalibrationAnalyser:
         conf_ece = self._calculate_ece(conf_stats, 'mean_confidence', len(conf_df))
 
         # 2. Uncertainty Calibration (using 1 - uncertainty as "certainty")
-        uncert_bins = pd.cut(conf_df['uncertainty'], bins=self.num_bins)
+        uncert_bins = pd.cut(conf_df['uncertainty']['overall'], bins=self.num_bins)
         uncert_stats = (
             flat_df.groupby(uncert_bins)
             .agg(
@@ -175,29 +116,32 @@ class UncertaintyCalibrationAnalyser:
     def _get_flattened_data(self):
         flat_data = []
         for _, row in self.df.iterrows():
+            # Original answer
             if self.mode == 'original':
-                # Only process original answer
                 flat_data.append({
+                    'idx': row['idx'],
                     'uncertainty': row['uncertainty'],
                     'answer': row['original_answer'],
-                    'confidence': row.get('original_confidence', 0.5),
+                    'confidence': row['original_confidence'],
                     'correct': row['original_correct'],
                     'perturbation': 'original',
                     'expected': row['expected_output']
                 })
-            else:
-                # Process all answers (original mode)
-                for col in [c for c in row.index if c.endswith('_answer')]:
-                    prefix = col[:-len('_answer')]
-                    flat_data.append({
-                        'uncertainty': row['uncertainty'],
-                        'answer': row[col],
-                        'confidence': row[f'{prefix}_confidence'],
-                        'correct': row[f'{prefix}_correct'],
-                        'perturbation': prefix.split('_')[0],
-                        'expected': row['expected_output'],
 
-                    })
+            # Perturbed answers (if needed)
+            if self.mode == 'all':
+                for perturb_type, answers in row['perturbed_answers'].items():
+                    for ans in answers:
+                        flat_data.append({
+                            'idx': row['idx'],
+                            'input': row['input'],
+                            'uncertainty': row['uncertainty'],
+                            'answer': ans['answer'],
+                            'confidence': ans['confidence'],
+                            'correct': ans['correct'],
+                            'perturbation': perturb_type,
+                            'expected': row['expected_output']
+                        })
         return pd.DataFrame(flat_data)
 
     def _calculate_ece(self, bin_stats, pred_col, total_samples):
@@ -225,61 +169,64 @@ class UncertaintyCalibrationAnalyser:
         with open(output_path, 'w') as f:
             json.dump(results, f, indent=2)
 
-    def generate_confidence_comparison(self, save_path=None, variable='confidence'):
+    def generate_uncertainty_comparison(self, save_dir=None):
+        """Generate comparison plots for all uncertainty types"""
         flat_df = self._get_flattened_data()
-        self._plot_confidence_distribution(flat_df, variable, save_path)
+        results = {}
 
-        return self._perform_statistical_tests(flat_df, variable)
+        for uncert_type in ['overall', 'temp', 'trigger', 'rephrase']:
+            # Create certainty or uncertainty column for plotting
+            flat_df['current_uncert'] = flat_df['uncertainty'].apply(lambda d: d[uncert_type])
 
-    def _plot_confidence_distribution(self, df, variable, save_path):
-        plt.figure(figsize=(12, 6))
-        sns.set(style="whitegrid")
-        if variable == 'uncertainty':
-            df[variable] = 1 - df[variable]
+            self._plot_uncertainty_distribution(flat_df, uncert_type, save_dir)
+            stats_df = self._run_uncertainty_stats(flat_df, uncert_type)
+            results[uncert_type] = stats_df
 
-        # Corrected boxplot without unsupported args
-        ax = sns.boxplot(
+        return results
+
+    def _plot_uncertainty_distribution(self, df, uncert_type, save_dir):
+        """Plot uncertainty distribution as boxplot by correctness"""
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(
             x="perturbation",
-            y=variable,
+            y="current_uncert",
             hue="correct",
             data=df,
             palette={True: "green", False: "red"}
         )
+        plt.title(f"{uncert_type.capitalize()} Uncertainty Distribution")
+        plt.ylabel("Uncertainty Score")
 
-        plt.title(f"{variable} Distribution by Answer Correctness", pad=20)
-        plt.xlabel("Perturbation Type")
-        plt.ylabel(f"{variable} Score")
-        plt.legend(title="Correct Answer", loc="upper right")
-        sns.despine()
-
-        if save_path:
-            plt.savefig(save_path, bbox_inches='tight', dpi=300)
+        if save_dir:
+            plt.savefig(f"{save_dir}/{uncert_type}_distribution.png", bbox_inches='tight')
         else:
             plt.show()
-
         plt.close()
 
-    def _perform_statistical_tests(self, df, variable):
-        results = []
+    def _run_uncertainty_stats(self, df, uncert_type):
+        """Run t-tests comparing uncertainty values for correct vs incorrect predictions"""
+        stats_results = []
 
-        for perturbation in df['perturbation'].unique():
-            correct = df[(df['perturbation'] == perturbation) & (df['correct'])][variable]
-            incorrect = df[(df['perturbation'] == perturbation) & (~df['correct'])][variable]
+        for perturb in df['perturbation'].unique():
+            subset = df[df['perturbation'] == perturb]
+            if len(subset) > 1:
+                correct_values = subset[subset['correct']]['current_uncert']
+                incorrect_values = subset[~subset['correct']]['current_uncert']
 
-            if len(correct) > 1 and len(incorrect) > 1:
-                t_stat, p_value = stats.ttest_ind(correct, incorrect, equal_var=False)
+                if len(correct_values) > 0 and len(incorrect_values) > 0:
+                    t_stat, p_value = stats.ttest_ind(
+                        correct_values,
+                        incorrect_values,
+                        equal_var=False
+                    )
+                    stats_results.append({
+                        'perturbation': perturb,
+                        'mean_correct': correct_values.mean(),
+                        'mean_incorrect': incorrect_values.mean(),
+                        'p_value': p_value
+                    })
 
-                results.append({
-                    'perturbation': perturbation,
-                    'mean_correct': correct.mean(),
-                    'mean_incorrect': incorrect.mean(),
-                    't_statistic': t_stat,
-                    'p_value': p_value,
-                    'n_correct': len(correct),
-                    'n_incorrect': len(incorrect)
-                })
-
-        return pd.DataFrame(results)
+        return pd.DataFrame(stats_results)
 
     def plot_comparison(self, analysis_results, save_path=None):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
@@ -304,4 +251,82 @@ class UncertaintyCalibrationAnalyser:
         plt.show()
 
         plt.close()
+
+    def analyze_all_uncertainties(self):
+        """Analyze all uncertainty types (overall, temp, trigger, rephrase)"""
+        flat_df = self._get_flattened_data()
+        results = {}
+
+        for uncert_type in ['overall', 'temp', 'trigger', 'rephrase']:
+            # Convert uncertainty to certainty
+            flat_df['certainty'] = flat_df['uncertainty'].apply(lambda d: 1 - d[uncert_type])
+
+            # Create bins based on certainty
+            bins = pd.cut(flat_df['certainty'], bins=self.num_bins)
+
+            # Compute bin statistics
+            bin_stats = (
+                flat_df.groupby(bins)
+                .agg(
+                    mean_certainty=('certainty', 'mean'),
+                    accuracy=('correct', 'mean'),
+                    count=('correct', 'size')
+                )
+                .reset_index()
+                .dropna()
+            )
+
+            # Compute Expected Calibration Error (ECE)
+            ece = np.sum(
+                np.abs(bin_stats['accuracy'] - bin_stats['mean_certainty']) *
+                (bin_stats['count'] / len(flat_df))
+            )
+
+            # Compute calibration curve
+            from sklearn.calibration import calibration_curve
+            prob_true, prob_pred = calibration_curve(
+                flat_df['correct'].astype(int),
+                flat_df['certainty'],
+                n_bins=self.num_bins
+            )
+
+            # Store results
+            results[uncert_type] = {
+                'bin_stats': bin_stats,
+                'ece': ece,
+                'calibration_curve': (prob_true, prob_pred)
+            }
+
+        return results
+
+    def plot_uncertainty_calibration(self, analysis_results, save_dir=None):
+        """Plot calibration curves for all uncertainty types"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+        axes = axes.flatten()
+
+        for idx, uncert_type in enumerate(['overall', 'temp', 'trigger', 'rephrase']):
+            data = analysis_results[uncert_type]
+            ax = axes[idx]
+
+            # Plot calibration curve
+            ax.plot(
+                data['calibration_curve'][1],
+                data['calibration_curve'][0],
+                'o-',
+                label=f'ECE={data["ece"]:.3f}'
+            )
+            ax.plot([0, 1], [0, 1], 'k--')
+            ax.set_title(f'{uncert_type.capitalize()} Uncertainty Calibration')
+            ax.set_xlabel('Predicted Certainty (1 - Uncertainty)')
+            ax.set_ylabel('Actual Accuracy')
+            ax.legend()
+            ax.grid(True)
+
+        plt.tight_layout()
+        if save_dir:
+            plt.savefig(f"{save_dir}/uncertainty_calibration_comparison.png", dpi=300)
+        else:
+            plt.show()
+        plt.close()
+
 
