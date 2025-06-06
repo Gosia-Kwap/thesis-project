@@ -58,7 +58,7 @@ class UncertaintyCalibrationAnalyser:
         """Assign uncertainty value to a bin"""
         return pd.cut([uncertainty], bins=self.bin_edges, labels=range(self.num_bins))[0]
 
-    def analyze_calibration(self):
+    def analyze_calibration(self, unc_type: str = 'overall'):
         # Flatten the data
         flat_df = self._get_flattened_data()
 
@@ -78,7 +78,8 @@ class UncertaintyCalibrationAnalyser:
         conf_ece = self._calculate_ece(conf_stats, 'mean_confidence', len(conf_df))
 
         # 2. Uncertainty Calibration (using 1 - uncertainty as "certainty")
-        uncert_bins = pd.cut(conf_df['uncertainty']['overall'], bins=self.num_bins)
+        conf_df['uncertainty'] = conf_df['uncertainty'][unc_type]
+        uncert_bins = pd.cut(conf_df['uncertainty'], bins=self.num_bins)
         uncert_stats = (
             flat_df.groupby(uncert_bins)
             .agg(

@@ -2,6 +2,7 @@ import pandas as pd
 from src.uncertainty.probing_uncertainty import ProbingUncertaintyEstimator
 from src.utils.log_functions import log_message
 from src.utils.parsers import parse_arguments_evaluation
+import re
 
 
 def prepare_samples(generated_answers):
@@ -22,23 +23,84 @@ def prepare_samples(generated_answers):
     return temperature_samples, trigger_samples, rephrase_samples, original_answer
 
 
-def compute_uncertainty_for_row(row):
-    """ Compute uncertainty for a single DataFrame row. """
+def compute_uncertainty_for_row(row) -> dict:
+    """Compute and return optimized uncertainty data structure"""
     generated_answers = row["generated_answers"]
-
     temperature_samples, trigger_samples, rephrase_samples, original_answer = prepare_samples(generated_answers)
 
-    # Instantiate the estimator
     estimator = ProbingUncertaintyEstimator(original_answer)
-
-    # Estimate uncertainty
     uncertainty = estimator.estimate_uncertainty(
         temperature_samples=temperature_samples,
         trigger_samples=trigger_samples,
         rephrase_samples=rephrase_samples
     )
 
-    return uncertainty
+    # Extract confidence from original answer
+    original_confidence = extract_confidence(original_answer) if original_answer else 0.5
+
+    # Check correctness (assuming expected_output exists in row)
+    original_correct = (extract_final_answer(original_answer) == row["expected_output"]) if original_answer else False
+
+    return {
+        "idx": row.name,  # Assuming DataFrame index is question ID
+        "input": row["input"],
+        "expected_output": row["Answer"],
+        "original_answer": original_answer,
+        "original_confidence": original_confidence,
+        "original_correct": original_correct,
+        "uncertainty": uncertainty,
+        "perturbed_answers": {
+            "temperature": [
+                {
+                    "answer": extract_final_answer(ans),
+                    "confidence": extract_confidence(ans),
+                    "correct": extract_final_answer(ans) == row["expected_output"]
+                }
+                for ans in temperature_samples
+            ],
+            "trigger": [
+                {
+                    "answer": extract_final_answer(ans),
+                    "confidence": extract_confidence(ans),
+                    "correct": extract_final_answer(ans) == row["expected_output"]
+                }
+                for ans in rephrase_samples
+            ],
+            "rephrase": [
+                {
+                    "answer": extract_final_answer(ans),
+                    "confidence": extract_confidence(ans),
+                    "correct": extract_final_answer(ans) == row["expected_output"]
+                }
+                for ans in rephrase_samples
+            ]
+        }
+    }
+
+def extract_final_answer(text):
+    """Extract the final numerical answer from model output text"""
+    # Priority 1: Look for "Final Answer" pattern
+    final_answer_match = re.search(r'Final Answer[^:]*:\s*(\d+)', text, re.IGNORECASE)
+    if final_answer_match:
+        return int(final_answer_match.group(1))
+
+    # Priority 2: Find last equation result
+    equations = re.findall(r'(\d+\s*[+\-*/]\s*\d+\s*=\s*\d+)', text)
+    if equations:
+        last_eq = equations[-1].split('=')[-1].strip()
+        return int(last_eq)
+
+    # Priority 3: Find last standalone number (fallback)
+    numbers = re.findall(r'\b\d+\b', text)
+    if numbers:
+        return int(numbers[-1])
+
+    return None
+
+def extract_confidence(text):
+    """Extract confidence percentage from model output text"""
+    confidence_match = re.search(r'Overall Confidence(?:\(0-100\))?[^:]*:\s*\d+,\s*(\d+)%', text, re.IGNORECASE)
+    return int(confidence_match.group(1)) / 100 if confidence_match else None  # Default to 0.5 if not found
 
 
 def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", index: int =None):
