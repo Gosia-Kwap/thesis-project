@@ -29,8 +29,8 @@ class PerturbationGenerator:
         if self.default_temp == 1.0:
             self.temperatures = [
                 0.8,
+                0.9,
                 1.0,
-                # 1.2,
             ]
         else:
             self.temperatures = [
@@ -63,9 +63,9 @@ class PerturbationGenerator:
 
         # Rephrased question perturbation
         if rephrased_questions is not None:
-            for rephrased in rephrased_questions:
+            for idx, rephrased in enumerate(rephrased_questions):
                 rephrased_question = text + ' ' + rephrased
-                key = f"rephrased_{rephrased[:10]}"
+                key = f"rephrased_{rephrased}_{idx}"
                 results[key] = self._generate_samples(
                     question=rephrased_question,
                     num_samples=2,
