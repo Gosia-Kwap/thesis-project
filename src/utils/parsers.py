@@ -52,6 +52,7 @@ def parse_arguments_evaluation():
         help="Start index of the part of the dataset to process")
     parser.add_argument('--model', type=str, default="gemma9b",
                         help='Model name (e.g., "gemma9b")')
+    parser.add_argument('--method', type=str, default="cosine",)
 
     args = parser.parse_args()
 

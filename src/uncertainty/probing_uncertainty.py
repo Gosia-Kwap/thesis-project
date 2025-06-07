@@ -168,7 +168,8 @@ class ProbingUncertaintyEstimator:
         """
         Compute semantic similarity between two texts using specified method.
         """
-        log_message(f"Computing {method} similarity between texts...", self.log_level)
+        if self.log_level == LEVEL.DEBUG:
+            log_message(f"Computing {method} similarity between texts...", self.log_level)
 
         try:
             if method.startswith('entailment'):

@@ -47,12 +47,12 @@ def build_perturbed_set(samples: list[str], expected_output):
     ]
 
 
-def compute_uncertainty_for_row(row) -> dict:
+def compute_uncertainty_for_row(row, method = 'cosine') -> dict:
     """Compute structured uncertainty metrics for a single row."""
     temp, trigger, rephrase, original = prepare_samples(row["generated_answers"])
 
     estimator = ProbingUncertaintyEstimator(original)
-    uncertainty = estimator.estimate_uncertainty(temp, trigger, rephrase)
+    uncertainty = estimator.estimate_uncertainty(temp, trigger, rephrase, method=method)
 
     original_val = extract_final_answer(original)
     original_conf = extract_confidence(original)
@@ -72,7 +72,7 @@ def compute_uncertainty_for_row(row) -> dict:
     }
 
 
-def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", index: int =None):
+def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", index: int =None, method: str = "cosine"):
 
     log_message(f"Starting execution with parameters: executor={executor}, task={task}, model={model}")
 
@@ -84,7 +84,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     if index:
         # Load a specific index
         df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}.json")
-        df["uncertainty"] = df.apply(compute_uncertainty_for_row, axis=1)
+        df["uncertainty"] = df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
         output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty.json"
         df.to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
@@ -93,7 +93,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
         dataframes = [pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{i}_{i + 100}.json") for i in
                       range(0, 1000, 100)]
         combined_df = pd.concat(dataframes, ignore_index=True)
-        combined_df["uncertainty"] = combined_df.apply(compute_uncertainty_for_row, axis=1)
+        combined_df["uncertainty"] = df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
         output_dir = f"{result_dir}/{task}_perturbed_outputs_{model}_uncertainty.json"
         combined_df.to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: task={task}, model={model}")
@@ -103,4 +103,4 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
 if __name__ == "__main__":
     args = parse_arguments_evaluation()
 
-    main(executor=args.executor, task=args.task, model=args.model, index=args.index,)
+    main(executor=args.executor, task=args.task, model=args.model, index=args.index, method=args.method)
