@@ -3,8 +3,6 @@ from src.uncertainty.probing_uncertainty import ProbingUncertaintyEstimator
 from src.utils.log_functions import log_message
 from src.utils.parsers import parse_arguments_evaluation
 import re
-import os
-
 
 
 def extract_final_answer(text):
@@ -84,18 +82,18 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     if index:
         # Load a specific index
         df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}.json")
-        df["uncertainty"] = df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
+        results = df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
         output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
-        df.to_json(output_dir, orient="records")
+        results.to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
         log_message(f"Results saved to {output_dir}")
     else:
         dataframes = [pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{i}_{i + 100}.json") for i in
                       range(0, 1000, 100)]
         combined_df = pd.concat(dataframes, ignore_index=True)
-        combined_df["uncertainty"] = combined_df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
+        results = combined_df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
         output_dir = f"{result_dir}/{task}_perturbed_outputs_{model}_uncertainty_{method}.json"
-        combined_df.to_json(output_dir, orient="records")
+        results.to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: task={task}, model={model}")
         log_message(f"Results saved to {output_dir}")
 
