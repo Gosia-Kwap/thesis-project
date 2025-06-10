@@ -76,10 +76,12 @@ class UncertaintyCalibrationAnalyser:
             .dropna()
         )
         conf_ece = self._calculate_ece(conf_stats, 'mean_confidence', len(conf_df))
-
+        flat_df = conf_df
         # 2. Uncertainty Calibration (using 1 - uncertainty as "certainty")
-        conf_df['uncertainty'] = conf_df['uncertainty'][unc_type]
-        uncert_bins = pd.cut(conf_df['uncertainty'], bins=self.num_bins)
+        flat_df['uncertainty'] = flat_df['uncertainty'].apply(lambda d: d.get(unc_type, None))
+        flat_df['uncertainty'] = flat_df['uncertainty'].apply(lambda x: x[1] if isinstance(x, tuple) else x)
+
+        uncert_bins = pd.cut(flat_df['uncertainty'], bins=self.num_bins)
         uncert_stats = (
             flat_df.groupby(uncert_bins)
             .agg(
@@ -135,7 +137,6 @@ class UncertaintyCalibrationAnalyser:
                     for ans in answers:
                         flat_data.append({
                             'idx': row['idx'],
-                            'input': row['input'],
                             'uncertainty': row['uncertainty'],
                             'answer': ans['answer'],
                             'confidence': ans['confidence'],
@@ -284,7 +285,6 @@ class UncertaintyCalibrationAnalyser:
             )
 
             # Compute calibration curve
-            from sklearn.calibration import calibration_curve
             prob_true, prob_pred = calibration_curve(
                 flat_df['correct'].astype(int),
                 flat_df['certainty'],
