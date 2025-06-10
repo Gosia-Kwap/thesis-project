@@ -78,7 +78,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     if executor == "habrok":
         result_dir = '/home2/s4637577/thesis-project/results'
     else:
-        result_dir = r"/Users/m.kwapniewska/OneDrive/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results"
+        result_dir = r"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results"
 
     if index:
         # Load a specific index
