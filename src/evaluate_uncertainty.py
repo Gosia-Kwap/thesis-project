@@ -58,6 +58,7 @@ def compute_uncertainty_for_row(row, method = 'cosine') -> dict:
     return {
         "idx": row.name,
         "expected_output": row["expected_output"],
+        "full_original_answer": original,
         "original_answer": original_val,
         "original_confidence": original_conf,
         "original_correct": original_val == row["expected_output"],
