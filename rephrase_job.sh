@@ -27,6 +27,6 @@ pip install --quiet -r requirements.txt
 
 
 # Run the script with args
-python -m src.rephrase_questions --task SVAMP
+python -m src.rephrase_questions --task GSM8K
 
 deactivate
