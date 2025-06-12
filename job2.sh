@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-30
-#SBATCH --job-name=GSM_test
+#SBATCH --job-name=GSM_test_gemma
 #SBATCH --mem=10GB
 
 module purge
