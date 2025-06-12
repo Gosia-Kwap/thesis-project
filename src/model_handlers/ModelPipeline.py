@@ -117,7 +117,6 @@ class ModelPipeline:
     def _load_data(self) -> pd.DataFrame:
         """Load and prepare dataset"""
         data_path = Path("data") / f"{self.args.task}_rephrased.json"
-        log_message(f"Data loaded from: {data_path}, data size: {len(self.data)}", "INFO")
         if not data_path.exists():
             raise FileNotFoundError(f"Data file not found: {data_path}")
 
@@ -128,6 +127,7 @@ class ModelPipeline:
             'rephrased' : data['Rephrased'] if 'Rephrased' in data else None,
             'label': data['Answer']
         })
+        log_message(f"Data loaded from: {data_path}, data size: {len(df.iloc[self.args.start:self.args.end])}", "INFO")
 
         return df.iloc[self.args.start:self.args.end]
 
