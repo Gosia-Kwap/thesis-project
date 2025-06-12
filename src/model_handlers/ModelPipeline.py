@@ -31,7 +31,7 @@ from transformers import (
 
 from src.utils.log_functions import log_message
 from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
-from prompts.CoT import generic_prompt, trigger_phrases
+from prompts.CoT import trigger_phrases, prompt_dict
 from src.utils.Enums import MODEL_MAP, LEVEL
 
 
@@ -47,6 +47,7 @@ class ModelPipeline:
 
         self.model, self.tokenizer = self._load_model_and_tokenizer()
         self.data = self._load_data()
+        self.prompt = self._find_prompt()
 
     def _setup_environment(self):
         """Configure environment variables and directories"""
@@ -114,6 +115,11 @@ class ModelPipeline:
 
         return model, tokenizer
 
+    def _find_prompt(self):
+        return prompt_dict[self.args.task]
+
+
+
     def _load_data(self) -> pd.DataFrame:
         """Load and prepare dataset"""
         data_path = Path("data") / f"{self.args.task}_rephrased.json"
@@ -138,7 +144,7 @@ class ModelPipeline:
         perturbator = Perturbator(
             self.model,
             self.tokenizer,
-            generic_prompt,
+            self.prompt,
             trigger_phrases
         )
 
