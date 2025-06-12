@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=evaluate_results_llama_entailment
+#SBATCH --job-name=evaluate_results_gemma9b_entailment
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method entailment_prob
+python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method entailment_prob
 
 deactivate
