@@ -14,13 +14,24 @@ def extract_final_answer(text):
     if match:
         return match.group(1).strip()
 
-    equations = re.findall(r'(\d+\s*[+\-*/]\s*\d+\s*=\s*\d+)', text)
-    if equations:
-        return int(equations[-1].split('=')[-1].strip())
+    match = re.search(r"answer is[:\s]*([^\n.]+)", text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
 
+    # find last number that is NOT the confidence
     not_conf = re.findall(r'(\d+(?:\.\d+)?)(?!\s*%)', text)
     if not_conf:
         return float(not_conf[-1].strip())
+
+    #find an equation for x
+    equation = re.findall(r'\bx\s*=\s*([^\n\r]+)', text, re.IGNORECASE)
+    if equation:
+        return equation[0].strip()
+
+    # find any equation
+    equation = re.findall(r'([^\n\r=]*x[^\n\r=]*=[^\n\r]*)', text, re.IGNORECASE)
+    if equation:
+        return equation[0].strip()
 
     numbers = re.findall(r'\b\d+\b', text)
     return int(numbers[-1]) if numbers else None
@@ -122,5 +133,13 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
 
 if __name__ == "__main__":
     args = parse_arguments_evaluation()
+
+    log_message(
+        f"Starting uncertainty evaluation with parameters:\n"
+        f"  Model: {args.model}\n"
+        f"  Method: {args.method}\n"
+        f"  Task: {args.task}\n"
+        f"  Range: {args.index}-{args.index + 100}\n"
+    )
 
     main(executor=args.executor, task=args.task, model=args.model, index=args.index, method=args.method)
