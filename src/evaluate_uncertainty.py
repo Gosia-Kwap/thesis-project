@@ -10,10 +10,17 @@ def extract_final_answer(text):
     match = re.search(r'Final Answer[^:]*:\s*\$?(\d+)', text, re.IGNORECASE)
     if match:
         return int(match.group(1))
+    match = re.search(r"final answer is[:\s]*([^\n.]+)", text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
 
     equations = re.findall(r'(\d+\s*[+\-*/]\s*\d+\s*=\s*\d+)', text)
     if equations:
         return int(equations[-1].split('=')[-1].strip())
+
+    not_conf = re.findall(r'(\d+(?:\.\d+)?)(?!\s*%)', text)
+    if not_conf:
+        return float(not_conf[-1].strip())
 
     numbers = re.findall(r'\b\d+\b', text)
     return int(numbers[-1]) if numbers else None
@@ -22,7 +29,21 @@ def extract_final_answer(text):
 def extract_confidence(text):
     """Extract confidence percentage from model output text."""
     match = re.search(r'Overall Confidence(?:\(0-100\))?[^:]*:\s*\$?\d+,\s*(\d+)%', text, re.IGNORECASE)
-    return int(match.group(1)) / 100 if match else None
+    if match:
+        return int(match.group(1)) / 100
+
+    # If no match, find last time there was a confidence
+    pattern = r'confidence\s*(?:is)?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%'
+    fallback_matches = re.findall(pattern, text, re.IGNORECASE)
+    if fallback_matches:
+        return int(fallback_matches[-1])
+
+    # If no match, find last number with percentage
+    percent_numbers = re.findall(r'(\d+(?:\.\d+)?)\s*%', text)
+    if percent_numbers:
+        return int(percent_numbers[-1])
+
+    return None
 
 
 def prepare_samples(generated):
