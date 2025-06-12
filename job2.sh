@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --time=00:30:00
+#SBATCH --time=04:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-2
+#SBATCH --array=0-30
 #SBATCH --job-name=GSM_test
 #SBATCH --mem=10GB
 
@@ -28,7 +28,7 @@ source ./thesis_venv/bin/activate
 pip install --upgrade pip
 pip install --quiet -r requirements.txt
 
-ROWS_PER_TASK=200
+ROWS_PER_TASK=100
 
 # Compute index range for this SLURM array task
 START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
