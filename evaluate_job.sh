@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --array=0-1
 #SBATCH --job-name=evaluate_results_gemma9b
-#SBATCH --mem=20GB
+#SBATCH --mem=10GB
 
 module purge
 
