@@ -5,6 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
+#SBATCH --array=0-30
 #SBATCH --job-name=GSM_test
 #SBATCH --mem=10GB
 
@@ -32,9 +33,6 @@ ROWS_PER_TASK=200
 # Compute index range for this SLURM array task
 START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
-
-START_INDEX = 0
-END_INDEX = 200
 
 # Run the script with args
 python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --task GSM8K
