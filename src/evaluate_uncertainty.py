@@ -6,81 +6,63 @@ import re
 
 import re
 
+import re
 
-def extract_final_answer(text: str, answer_type: str = 'integer'):
+
+def extract_final_answer(text, expected_type="int"):
     """
-    Extract the final answer from model output text with configurable return type.
+    Extract final answer from text and convert to expected type.
 
-    Args:
-        text: The model output text to parse
-        answer_type: The type of answer to extract ('integer', 'float', or 'label')
-
-    Returns:
-        The extracted answer in the requested format, or None if no match found
+    expected_type: "float" | "int" | "label"
     """
-    # Pre-process text to remove common noise
-    clean_text = re.sub(r'\s+', ' ', text.strip())
-
-    # Try explicit answer patterns first (highest priority)
     patterns = [
-        r'Final Answer[^:]*:\s*[\$€£]?\s*([^\n.]+)',  # $123 or €45 etc.
-        r'final answer is[:\s]*([^\n.]+)',
-        r'answer is[:\s]*([^\n.]+)',
-        r'[Tt]he answer is\s*([^\n.]+)',
-        r'[Tt]herefore\s*(?:the|our)\s*answer is\s*([^\n.]+)'
+        r'Final Answer and Overall Confidence\(0-100\):\s*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)\s*,\s*\d+%',
+        r'final answer[^:]*:\s*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)',
+        r'answer is[:\s]*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)',
+        r'\bx\s*=\s*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)'
     ]
 
-    for pattern in patterns:
-        match = re.search(pattern, clean_text, re.IGNORECASE)
+    for pat in patterns:
+        match = re.search(pat, text, re.IGNORECASE)
         if match:
-            extracted = match.group(1).strip()
-            return _convert_to_type(extracted, answer_type)
+            return convert_answer(match.group(1), expected_type)
 
-    # Special handling for multiple choice labels (A/B/C/D)
-    if answer_type == 'label':
-        label_match = re.search(r'\b([ABCD])\b(?!\.\d)', clean_text, re.IGNORECASE)
-        if label_match:
-            return label_match.group(1).upper()
-
-    # Find equations (medium priority)
-    equation = re.search(r'\bx\s*=\s*([^\n\r]+)', clean_text, re.IGNORECASE)
-    if equation:
-        return _convert_to_type(equation.group(1).strip(), answer_type)
-
-    # Find last number that is NOT a confidence percentage (low priority)
-    if answer_type in ['integer', 'float']:
-        numbers = re.findall(r'(\d+(?:\.\d+)?)(?!\s*%)', clean_text)
-        if numbers:
-            return _convert_to_type(numbers[-1].strip(), answer_type)
-
-    # Final fallback - find any number
-    if answer_type in ['integer', 'float']:
-        numbers = re.findall(r'\b\d+(?:\.\d+)?\b', clean_text)
-        if numbers:
-            return _convert_to_type(numbers[-1].strip(), answer_type)
+    # fallback: last number with optional surrounding units, not a %
+    numbers = re.findall(r'(\S*\d+(?:\.\d+)?\S*)(?!\s*%)', text)
+    if numbers:
+        return convert_answer(numbers[-1], expected_type)
 
     return None
 
 
-def _convert_to_type(value: str, target_type: str):
-    """Convert extracted string to the desired type"""
+def convert_answer(ans_str, expected_type):
+    """Convert ans_str to desired type: float, int, or label."""
+    ans_str = ans_str.strip()
+
+    if expected_type == "label":
+        # Expect A-E letter
+        if re.fullmatch(r'[A-Ea-e]', ans_str):
+            return ans_str.upper()
+        else:
+            return ans_str  # return as-is
+
+    # Remove non-digit, non-dot, non-minus at edges (strip units)
+    numeric_match = re.search(r'-?\d+(?:\.\d+)?', ans_str)
+    if not numeric_match:
+        return ans_str  # fallback if no number found
+
+    num_str = numeric_match.group(0)
+
     try:
-        if target_type == 'integer':
-            # Remove any non-numeric characters before conversion
-            clean_value = re.sub(r'[^\d-]', '', value)
-            return int(float(clean_value))  # Handle cases like "3.0"
-        elif target_type == 'float':
-            # Handle currency symbols, commas, etc.
-            clean_value = re.sub(r'[^\d.-]', '', value)
-            return float(clean_value)
-        elif target_type == 'label':
-            # Return uppercase version if it's A/B/C/D
-            if value.upper() in ['A', 'B', 'C', 'D']:
-                return value.upper()
-            return value
-        return value
-    except (ValueError, TypeError):
-        return value  # Return as-is if conversion fails
+        if expected_type == "int":
+            return int(float(num_str))
+        elif expected_type == "float":
+            return float(num_str)
+    except ValueError:
+        return ans_str  # fallback: couldn't convert
+
+    return ans_str
+
 
 
 def extract_confidence(text):
@@ -127,11 +109,11 @@ def compute_uncertainty_for_row(row, method = 'cosine') -> dict:
     """Compute structured uncertainty metrics for a single row."""
     temp, trigger, rephrase, original = prepare_samples(row["generated_answers"])
 
-    estimator = ProbingUncertaintyEstimator(original)
-    uncertainty = estimator.estimate_uncertainty(temp, trigger, rephrase, method=method)
-
     original_val = extract_final_answer(original)
     original_conf = extract_confidence(original)
+
+    estimator = ProbingUncertaintyEstimator(original)
+    uncertainty = estimator.estimate_uncertainty(temp, trigger, rephrase, method=method)
 
     return {
         "idx": row.name,
@@ -156,7 +138,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     if executor == "habrok":
         result_dir = '/home2/s4637577/thesis-project/results'
     else:
-        result_dir = r"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results"
+        result_dir = r"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/results-newest"
 
     if index:
         # Load a specific index
@@ -185,7 +167,7 @@ if __name__ == "__main__":
         f"  Model: {args.model}\n"
         f"  Method: {args.method}\n"
         f"  Task: {args.task}\n"
-        f"  Range: {args.index}-{args.index + 100}\n"
+        f"  Range: {args.index}-{args.index +100}\n" if args.index else None
     )
 
     main(executor=args.executor, task=args.task, model=args.model, index=args.index, method=args.method)
