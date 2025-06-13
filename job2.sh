@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=30-60
+#SBATCH --array=4,5,8-9
 #SBATCH --job-name=GSM_test_gemma
 #SBATCH --mem=10GB
 
