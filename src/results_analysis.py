@@ -29,14 +29,18 @@
 
 from src.uncertainty.UncertaintyCalibrationAnalyser import UncertaintyCalibrationAnalyser
 
+task = "SVAMP"
+model = 'llama3'
+method = 'cosine'
 result_dir = "/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/uncertainty"
-plot_dir = "/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/plots"
+plot_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/plots/{task}/"
+
 
 # Initialize the analyser with the directory containing results
 analyser = UncertaintyCalibrationAnalyser(
     result_dir=result_dir,
-    file_pattern="SVAMP_perturbed_outputs_llama3_*_uncertainty_cosine.json",
-    num_bins=10,
+    file_pattern=f"{task}_perturbed_outputs_gemma9b_*_uncertainty_{method}.json",
+    num_bins=6,
     mode="original"  # Use "original" to only analyze the original answers
 )
 
@@ -51,7 +55,7 @@ analyser.plot_comparison(analysis_results)
 # analyser.save_results(analysis_results['uncertainty'], 'uncertainty_results.json')
 
 # Compare uncertainty distributions across types and perturbations
-uncertainty_distributions = analyser.generate_uncertainty_comparison(save_dir=plot_dir)
+uncertainty_distributions = analyser.generate_uncertainty_comparison(save_dir=plot_dir, model=model)
 
 # Perform separate calibration analysis per uncertainty type (overall, temp, trigger, rephrase)
 all_uncertainty_results = analyser.analyze_all_uncertainties()
