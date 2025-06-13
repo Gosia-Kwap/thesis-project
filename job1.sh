@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=new_gemma9b
+#SBATCH --job-name=gemma9_quantised_svamp
 #SBATCH --mem=10GB
 
 module purge
@@ -35,6 +35,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
 # Run the script with args
-python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX}
+python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --quantisation
 
 deactivate
