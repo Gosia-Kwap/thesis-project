@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-3, 6-7, 9-13
+#SBATCH --array=0-3,6-7,9-13
 #SBATCH --job-name=evaluate_results_gemma9b_entailment
 #SBATCH --mem=10GB
 
