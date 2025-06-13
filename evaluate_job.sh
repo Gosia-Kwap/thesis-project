@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-9
+#SBATCH --array=0-3, 6-7, 9-13
 #SBATCH --job-name=evaluate_results_gemma9b_entailment
 #SBATCH --mem=10GB
 
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cosine
+python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cosine --task GSM8K
 
 deactivate
