@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method entailment_prob
+python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method cosine
 
 deactivate
