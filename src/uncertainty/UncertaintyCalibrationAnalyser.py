@@ -171,7 +171,7 @@ class UncertaintyCalibrationAnalyser:
         with open(output_path, 'w') as f:
             json.dump(results, f, indent=2)
 
-    def generate_uncertainty_comparison(self, save_dir=None):
+    def generate_uncertainty_comparison(self, save_dir=None, model:str ='SVAMP'):
         """Generate comparison plots for all uncertainty types"""
         flat_df = self._get_flattened_data()
         results = {}
@@ -180,13 +180,13 @@ class UncertaintyCalibrationAnalyser:
             # Create certainty or uncertainty column for plotting
             flat_df['current_uncert'] = flat_df['uncertainty'].apply(lambda d: d[uncert_type])
 
-            self._plot_uncertainty_distribution(flat_df, uncert_type, save_dir)
+            self._plot_uncertainty_distribution(flat_df, uncert_type, save_dir, model)
             stats_df = self._run_uncertainty_stats(flat_df, uncert_type)
             results[uncert_type] = stats_df
 
         return results
 
-    def _plot_uncertainty_distribution(self, df, uncert_type, save_dir):
+    def _plot_uncertainty_distribution(self, df, uncert_type, save_dir, model: str):
         """Plot uncertainty distribution as boxplot by correctness"""
         plt.figure(figsize=(10, 6))
         sns.boxplot(
@@ -200,7 +200,7 @@ class UncertaintyCalibrationAnalyser:
         plt.ylabel("Uncertainty Score")
 
         if save_dir:
-            plt.savefig(f"{save_dir}/{uncert_type}_distribution.png", bbox_inches='tight')
+            plt.savefig(f"{save_dir}/{model}_{uncert_type}_distribution.png", bbox_inches='tight')
         else:
             plt.show()
         plt.close()
