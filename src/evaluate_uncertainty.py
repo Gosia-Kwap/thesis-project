@@ -4,55 +4,101 @@ from src.utils.log_functions import log_message
 from src.utils.parsers import parse_arguments_evaluation
 import re
 
+import re
 
-def extract_final_answer(text):
-    """Extract the final numerical answer from model output text."""
-    match = re.search(r'Final Answer[^:]*:\s*\$?(\d+)', text, re.IGNORECASE)
-    if match:
-        return int(match.group(1))
-    match = re.search(r"final answer is[:\s]*([^\n.]+)", text, re.IGNORECASE)
-    if match:
-        return match.group(1).strip()
 
-    match = re.search(r"answer is[:\s]*([^\n.]+)", text, re.IGNORECASE)
-    if match:
-        return match.group(1).strip()
+def extract_final_answer(text: str, answer_type: str = 'integer'):
+    """
+    Extract the final answer from model output text with configurable return type.
 
-    # find last number that is NOT the confidence
-    not_conf = re.findall(r'(\d+(?:\.\d+)?)(?!\s*%)', text)
-    if not_conf:
-        return float(not_conf[-1].strip())
+    Args:
+        text: The model output text to parse
+        answer_type: The type of answer to extract ('integer', 'float', or 'label')
 
-    #find an equation for x
-    equation = re.findall(r'\bx\s*=\s*([^\n\r]+)', text, re.IGNORECASE)
+    Returns:
+        The extracted answer in the requested format, or None if no match found
+    """
+    # Pre-process text to remove common noise
+    clean_text = re.sub(r'\s+', ' ', text.strip())
+
+    # Try explicit answer patterns first (highest priority)
+    patterns = [
+        r'Final Answer[^:]*:\s*[\$€£]?\s*([^\n.]+)',  # $123 or €45 etc.
+        r'final answer is[:\s]*([^\n.]+)',
+        r'answer is[:\s]*([^\n.]+)',
+        r'[Tt]he answer is\s*([^\n.]+)',
+        r'[Tt]herefore\s*(?:the|our)\s*answer is\s*([^\n.]+)'
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, clean_text, re.IGNORECASE)
+        if match:
+            extracted = match.group(1).strip()
+            return _convert_to_type(extracted, answer_type)
+
+    # Special handling for multiple choice labels (A/B/C/D)
+    if answer_type == 'label':
+        label_match = re.search(r'\b([ABCD])\b(?!\.\d)', clean_text, re.IGNORECASE)
+        if label_match:
+            return label_match.group(1).upper()
+
+    # Find equations (medium priority)
+    equation = re.search(r'\bx\s*=\s*([^\n\r]+)', clean_text, re.IGNORECASE)
     if equation:
-        return equation[0].strip()
+        return _convert_to_type(equation.group(1).strip(), answer_type)
 
-    # find any equation
-    equation = re.findall(r'([^\n\r=]*x[^\n\r=]*=[^\n\r]*)', text, re.IGNORECASE)
-    if equation:
-        return equation[0].strip()
+    # Find last number that is NOT a confidence percentage (low priority)
+    if answer_type in ['integer', 'float']:
+        numbers = re.findall(r'(\d+(?:\.\d+)?)(?!\s*%)', clean_text)
+        if numbers:
+            return _convert_to_type(numbers[-1].strip(), answer_type)
 
-    numbers = re.findall(r'\b\d+\b', text)
-    return int(numbers[-1]) if numbers else None
+    # Final fallback - find any number
+    if answer_type in ['integer', 'float']:
+        numbers = re.findall(r'\b\d+(?:\.\d+)?\b', clean_text)
+        if numbers:
+            return _convert_to_type(numbers[-1].strip(), answer_type)
+
+    return None
+
+
+def _convert_to_type(value: str, target_type: str):
+    """Convert extracted string to the desired type"""
+    try:
+        if target_type == 'integer':
+            # Remove any non-numeric characters before conversion
+            clean_value = re.sub(r'[^\d-]', '', value)
+            return int(float(clean_value))  # Handle cases like "3.0"
+        elif target_type == 'float':
+            # Handle currency symbols, commas, etc.
+            clean_value = re.sub(r'[^\d.-]', '', value)
+            return float(clean_value)
+        elif target_type == 'label':
+            # Return uppercase version if it's A/B/C/D
+            if value.upper() in ['A', 'B', 'C', 'D']:
+                return value.upper()
+            return value
+        return value
+    except (ValueError, TypeError):
+        return value  # Return as-is if conversion fails
 
 
 def extract_confidence(text):
     """Extract confidence percentage from model output text."""
     match = re.search(r'Overall Confidence(?:\(0-100\))?[^:]*:\s*\$?\d+,\s*(\d+)%', text, re.IGNORECASE)
     if match:
-        return int(match.group(1)) / 100
+        return float(match.group(1)) / 100
 
     # If no match, find last time there was a confidence
     pattern = r'confidence\s*(?:is)?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%'
     fallback_matches = re.findall(pattern, text, re.IGNORECASE)
     if fallback_matches:
-        return int(fallback_matches[-1])
+        return float(fallback_matches[-1])
 
     # If no match, find last number with percentage
     percent_numbers = re.findall(r'(\d+(?:\.\d+)?)\s*%', text)
     if percent_numbers:
-        return int(percent_numbers[-1])
+        return float(percent_numbers[-1])
 
     return None
 
@@ -65,7 +111,7 @@ def prepare_samples(generated):
     return temp, trigger, rephrase, generated.get("original_answer", [None])[0]
 
 
-def build_perturbed_set(samples: list[str], expected_output):
+def build_perturbed_set(samples: list[str], expected_output, answer_format):
     """Create metadata for a list of perturbed samples."""
     return [
         {
