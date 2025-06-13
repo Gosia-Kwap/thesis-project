@@ -29,9 +29,6 @@ class ProbingUncertaintyEstimator:
         self.log_level = log_level
         self._init_time = time.time()
 
-        log_message(f"Initializing ProbingUncertaintyEstimator with answer: {original_answer[:50]}...",
-                    self.log_level)
-
         # Load models
         self._load_models()
 
@@ -40,26 +37,22 @@ class ProbingUncertaintyEstimator:
 
     def _load_models(self):
         """Load both classification and embedding models."""
-        log_message("Loading models for entailment and embeddings...", self.log_level)
         model_name = "potsawee/deberta-v3-large-mnli"
         start_time = time.time()
 
         try:
             # For entailment classification
-            log_message(f"Loading tokenizer from {model_name}...", self.log_level)
             self.tokenizer = AutoTokenizer.from_pretrained(
                 model_name,
                 use_fast=False,
                 token=self.token
             )
 
-            log_message(f"Loading classification model from {model_name}...", self.log_level)
             self.classification_model = AutoModelForSequenceClassification.from_pretrained(
                 model_name,
                 token=self.token
             )
 
-            log_message(f"Loading embedding model from {model_name}...", self.log_level)
             self.embedding_model = AutoModel.from_pretrained(
                 model_name,
                 token=self.token
@@ -67,13 +60,11 @@ class ProbingUncertaintyEstimator:
 
             # Move to GPU if available
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
-            log_message(f"Using device: {self.device}", self.log_level)
 
             self.classification_model.to(self.device)
             self.embedding_model.to(self.device)
 
             load_time = time.time() - start_time
-            log_message(f"Models loaded successfully in {load_time:.2f} seconds", self.log_level)
 
         except Exception as e:
             log_message(f"Failed to load models: {str(e)}", LEVEL.ERROR)
