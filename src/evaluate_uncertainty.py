@@ -2,6 +2,7 @@ import pandas as pd
 from src.uncertainty.probing_uncertainty import ProbingUncertaintyEstimator
 from src.utils.log_functions import log_message
 from src.utils.parsers import parse_arguments_evaluation
+from src.utils.Enums import format_dict
 import re
 
 import re
@@ -97,7 +98,7 @@ def build_perturbed_set(samples: list[str], expected_output, answer_format):
     """Create metadata for a list of perturbed samples."""
     return [
         {
-            "answer": (ans_val := extract_final_answer(ans)),
+            "answer": (ans_val := extract_final_answer(ans, answer_format)),
             "confidence": extract_confidence(ans),
             "correct": ans_val == expected_output
         }
@@ -105,11 +106,11 @@ def build_perturbed_set(samples: list[str], expected_output, answer_format):
     ]
 
 
-def compute_uncertainty_for_row(row, method = 'cosine') -> dict:
+def compute_uncertainty_for_row(row, answer_format:str = 'int', method = 'cosine') -> dict:
     """Compute structured uncertainty metrics for a single row."""
     temp, trigger, rephrase, original = prepare_samples(row["generated_answers"])
 
-    original_val = extract_final_answer(original)
+    original_val = extract_final_answer(original, answer_format)
     original_conf = extract_confidence(original)
 
     estimator = ProbingUncertaintyEstimator(original)
@@ -143,7 +144,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     if index:
         # Load a specific index
         df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}.json")
-        results = df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
+        results = df.apply(lambda row: compute_uncertainty_for_row(row, method, format_dict[task]), axis=1)
         output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
         results.to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")

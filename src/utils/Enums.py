@@ -12,3 +12,8 @@ class LEVEL(Enum):
     WARNING = "WARNING"
     ERROR = "ERROR"
     DEBUG = "DEBUG"
+
+format_dict = {
+    'SVAMP': 'int',
+    'GSM8K': 'int',
+}
