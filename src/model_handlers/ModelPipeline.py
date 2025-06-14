@@ -128,10 +128,11 @@ class ModelPipeline:
 
         data = pd.read_json(data_path)
         df = pd.DataFrame({
-            'text': data['Body'],
+            'text': data['Body'] if 'Body' in data else None,
             'question' : data['Question'],
             'rephrased' : data['Rephrased'] if 'Rephrased' in data else None,
-            'label': data['Answer']
+            'label': data['Answer'],
+            'answers' : data['Answers'] if 'Answers' in data else None,
         })
         log_message(f"Data loaded from: {data_path}, data size: {len(df.iloc[self.args.start:self.args.end])}", "INFO")
 
@@ -163,6 +164,7 @@ class ModelPipeline:
                     generated_answers = perturbator.generate_for_question(
                         text=row["text"],
                         question=row["question"],
+                        answers=row['answers'],
                         num_samples=3,
                         rephrased_questions=row["rephrased"] if "rephrased" in row else None,
                     )

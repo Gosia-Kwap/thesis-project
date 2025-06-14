@@ -39,10 +39,12 @@ class PerturbationGenerator:
                 1.0
             ]
 
-    def generate_for_question(self, text: str, question: str, num_samples: int = 3, rephrased_questions: list = None) -> Dict[str, List[str]]:
+    def generate_for_question(self, text: str, question: str, num_samples: int = 3, rephrased_questions: list = None, answers = None) -> Dict[str, List[str]]:
         """Generate all perturbations for a single question"""
         results = {}
         full_question = text + ". " + question
+        if answers:
+            full_question += f" {answers}"
         # Temperature perturbations
         for temp in self.temperatures:
             key = f"temp_{temp:.2f}"
