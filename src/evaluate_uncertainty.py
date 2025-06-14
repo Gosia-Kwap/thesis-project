@@ -76,12 +76,12 @@ def extract_confidence(text):
     pattern = r'confidence\s*(?:is)?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%'
     fallback_matches = re.findall(pattern, text, re.IGNORECASE)
     if fallback_matches:
-        return float(fallback_matches[-1])
+        return float(fallback_matches[-1]) / 100
 
     # If no match, find last number with percentage
     percent_numbers = re.findall(r'(\d+(?:\.\d+)?)\s*%', text)
     if percent_numbers:
-        return float(percent_numbers[-1])
+        return float(percent_numbers[-1]) / 100
 
     return None
 
