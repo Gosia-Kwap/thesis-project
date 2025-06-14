@@ -125,9 +125,9 @@ def compute_uncertainty_for_row(row, answer_format:str = 'int', method = 'cosine
         "original_correct": original_val == row["expected_output"],
         "uncertainty": uncertainty,
         "perturbed_answers": {
-            "temperature": build_perturbed_set(temp, row["expected_output"]),
-            "trigger": build_perturbed_set(trigger, row["expected_output"]),
-            "rephrase": build_perturbed_set(rephrase, row["expected_output"])
+            "temperature": build_perturbed_set(temp, row["expected_output"], answer_format),
+            "trigger": build_perturbed_set(trigger, row["expected_output"], answer_format),
+            "rephrase": build_perturbed_set(rephrase, row["expected_output"], answer_format)
         }
     }
 
