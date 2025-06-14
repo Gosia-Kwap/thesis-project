@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method cosine --task SVAMP
+python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cosine --task SVAMP
 
 deactivate
