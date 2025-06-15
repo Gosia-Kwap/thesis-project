@@ -101,7 +101,7 @@ class ModelPipeline:
             model_kwargs["quantization_config"] = BitsAndBytesConfig(
                 load_in_8bit=True,
                 llm_int8_skip_modules=["lm_head"],  # Critical for stability
-                llm_int8_enable_fp32_cpu_offload=True
+                # llm_int8_enable_fp32_cpu_offload=True
             )
 
         log_message("Loading model...", LEVEL.INFO)

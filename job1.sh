@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-9
-#SBATCH --job-name=gemma9_quantised_svamp
+#SBATCH --array=0
+#SBATCH --job-name=gemma9_quantised_try
 #SBATCH --mem=10GB
 
 module purge
