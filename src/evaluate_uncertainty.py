@@ -106,7 +106,7 @@ def build_perturbed_set(samples: list[str], expected_output, answer_format):
     ]
 
 
-def compute_uncertainty_for_row(row, answer_format:str = 'int', method = 'cosine') -> dict:
+def compute_uncertainty_for_row(row, method = 'cosine', answer_format:str = 'int') -> dict:
     """Compute structured uncertainty metrics for a single row."""
     temp, trigger, rephrase, original = prepare_samples(row["generated_answers"])
 
