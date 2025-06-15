@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=02:00:00
+#SBATCH --time=03:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-3,6-7,9-13
-#SBATCH --job-name=evaluate_results_gemma9b_entailment
+#SBATCH --array=0-9
+#SBATCH --job-name=evaluate_svamp_llama
 #SBATCH --mem=10GB
 
 module purge

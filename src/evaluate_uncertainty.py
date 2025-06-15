@@ -144,7 +144,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     if index:
         # Load a specific index
         df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}.json")
-        results = df.apply(lambda row: compute_uncertainty_for_row(row, method, format_dict[task]), axis=1)
+        results = df.apply(lambda row: compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task]), axis=1)
         output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
         results.to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
