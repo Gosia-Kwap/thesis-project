@@ -5,8 +5,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-9
-#SBATCH --job-name=evaluate_svamp_gemma9b_cosine
+#SBATCH --array=0-2,4-14
+#SBATCH --job-name=evaluate_gsm8k_gemma9b_cosine_missing_idx3
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method cosine --task SVAMP
+python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method cosine --task GSM8K
 
 deactivate
