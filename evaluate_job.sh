@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-2,4-14
+#SBATCH --array=3
 #SBATCH --job-name=evaluate_gsm8k_gemma9b_cosine_missing_idx3
 #SBATCH --mem=10GB
 
