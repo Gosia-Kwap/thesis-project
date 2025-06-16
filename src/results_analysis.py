@@ -1,32 +1,3 @@
-# from src.uncertainty.UncertaintyCalibrationAnalyser import UncertaintyCalibrationAnalyser
-#
-# result_dir = "/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/results-copy"
-#
-# analyzer_all = UncertaintyCalibrationAnalyser(
-#     result_dir=result_dir,
-#     file_pattern="SVAMP_perturbed_outputs_gemma9b_*_uncertainty.json",
-#     num_bins=25,
-#     mode='all'
-# )
-# results_all = analyzer_all.analyze_calibration()
-#
-# # Analyze only original answers
-# analyzer_orig = UncertaintyCalibrationAnalyser(
-#     result_dir=result_dir,
-#     file_pattern="SVAMP_perturbed_outputs_gemma9b_*_uncertainty.json",
-#     num_bins=25,
-#     mode='original'
-# )
-# results_orig = analyzer_orig.analyze_calibration()
-#
-# # Compare results
-# print("All answers confidence ECE:", results_all['confidence']['ece'])
-# print("All answers uncertainty ECE:", results_all['uncertainty']['ece'])
-# print("Original-only confidence ECE:", results_orig['confidence']['ece'])
-# print("Original-only uncertainty ECE:", results_orig['uncertainty']['ece'])
-#
-#
-
 from src.uncertainty.UncertaintyCalibrationAnalyser import UncertaintyCalibrationAnalyser
 
 task = "SVAMP"
@@ -39,7 +10,7 @@ plot_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/
 # Initialize the analyser with the directory containing results
 analyser = UncertaintyCalibrationAnalyser(
     result_dir=result_dir,
-    file_pattern=f"{task}_perturbed_outputs_gemma9b_*_uncertainty_{method}.json",
+    file_pattern=f"{task}_perturbed_outputs_{model}_*_uncertainty_{method}.json",
     num_bins=6,
     mode="original"  # Use "original" to only analyze the original answers
 )
@@ -63,6 +34,8 @@ all_uncertainty_results = analyser.analyze_all_uncertainties()
 # Plot calibration curves for each uncertainty type
 analyser.plot_uncertainty_calibration(all_uncertainty_results, save_dir=plot_dir)
 
-
+# Compare results
+print("Confidence ECE:", analysis_results['confidence']['ece'])
+print("Uncertainty ECE:", analysis_results['uncertainty']['ece'])
 
 
