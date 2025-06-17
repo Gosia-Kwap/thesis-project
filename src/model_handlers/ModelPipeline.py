@@ -76,6 +76,9 @@ class ModelPipeline:
         """Load model and tokenizer with appropriate configuration"""
         model_name = MODEL_MAP[self.args.model]
 
+        #log where the model is loaded to:
+        log_message(f"Model loaded to {os.getenv("HF_HOME")}", LEVEL.INFO)
+
         # Load tokenizer
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
