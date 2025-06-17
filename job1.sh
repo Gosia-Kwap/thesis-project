@@ -6,8 +6,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0
-#SBATCH --job-name=gemma9_quantised_try
-#SBATCH --mem=10GB
+#SBATCH --job-name=gemma9_try_tmp_dir
+#SBATCH --mem=20GB
 
 module purge
 
@@ -34,7 +34,10 @@ ROWS_PER_TASK=100
 START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
+# Prepare env
+export HF_HOME=/tmp
+
 # Run the script with args
-python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --quantisation
+python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX}
 
 deactivate
