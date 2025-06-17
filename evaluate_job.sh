@@ -5,8 +5,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-10
-#SBATCH --job-name=evaluate_gsm8k_gemma9b_cosine_missing_idx3
+#SBATCH --array=0-13
+#SBATCH --job-name=evaluate_gsm8k_gemma9b_cosine
 #SBATCH --mem=10GB
 
 module purge
