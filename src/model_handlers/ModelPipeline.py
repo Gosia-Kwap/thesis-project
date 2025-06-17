@@ -1,5 +1,5 @@
 """
-Script for generating perturbed outputs from language models
+Script for generating perturbed outputs from language models using vLLM
 """
 
 import os
@@ -21,39 +21,33 @@ from pathlib import Path
 
 from typing import Dict, List
 import pandas as pd
-import torch
 from tqdm import tqdm
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig
-)
+
+# vLLM imports
+from vllm import LLM, SamplingParams
+from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
 
 from src.utils.log_functions import log_message
 from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
 from prompts.CoT import trigger_phrases, prompt_dict
 from src.utils.Enums import MODEL_MAP, LEVEL
 
-
-
-
 class ModelPipeline:
     def __init__(self, args):
         self.args = args
         self._validate_arguments()
-        self.device = self._get_device()
 
-        torch.cuda.empty_cache()
+        # Clear any previous models
+        destroy_model_parallel()
 
-        self.model, self.tokenizer = self._load_model_and_tokenizer()
+        self.llm, self.sampling_params = self._load_model()
         self.data = self._load_data()
         self.prompt = self._find_prompt()
 
     def _setup_environment(self):
-        """Configure environment variables and directories"""
+        """Configure environment variables for vLLM"""
         self.scratch_dir = Path(f"/scratch/{os.environ['USER']}/huggingface")
         self.tmp_dir = Path(f"/scratch/{os.environ['USER']}/tmp")
-
         self.scratch_dir.mkdir(parents=True, exist_ok=True)
         self.tmp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -68,57 +62,38 @@ class ModelPipeline:
         if self.args.start >= self.args.end:
             raise ValueError("Start index must be less than end index")
 
-    def _get_device(self) -> str:
-        """Determine available device"""
-        return "cuda" if torch.cuda.is_available() else "cpu"
-
-    def _load_model_and_tokenizer(self):
-        """Load model and tokenizer with appropriate configuration"""
+    def _load_model(self):
+        """Load vLLM model with appropriate configuration"""
         model_name = MODEL_MAP[self.args.model]
 
-        # Load tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
-            token=os.getenv("HUGGING_FACE_TOKEN"),
-            cache_dir=os.getenv("HF_HOME"),
-            use_fast=True,
-            padding_side="left"
+        # Configure sampling parameters
+        sampling_params = SamplingParams(
+            temperature=0.7,
+            top_p=0.9,
+            max_tokens=512,  # Adjust based on your needs
+            stop=None  # Add any stop tokens if needed
         )
-
-        if tokenizer.pad_token is None:
-            tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
         # Model configuration
         model_kwargs = {
-            "device_map": "auto",
-            "token": os.getenv("HUGGING_FACE_TOKEN"),
-            "low_cpu_mem_usage": True,
-            "torch_dtype": torch.float16,
-            "cache_dir" : os.getenv("HF_HOME")
+            "model": model_name,
+            "download_dir": str(self.scratch_dir),
+            "max_model_len": 2048,  # Adjust based on your model
+            "gpu_memory_utilization": 0.9,  # Adjust based on your GPU
+            "dtype": "auto",
+            "trust_remote_code": True
         }
 
         if self.args.quantisation:
-            model_kwargs["quantization_config"] = BitsAndBytesConfig(
-                load_in_8bit=True,
-                llm_int8_skip_modules=["lm_head"],  # Critical for stability
-                # llm_int8_enable_fp32_cpu_offload=True
-            )
+            model_kwargs["quantization"] = "awq"  # or "squeezellm" depending on your needs
 
-        log_message("Loading model...", LEVEL.INFO)
-        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+        log_message("Loading vLLM model...", LEVEL.INFO)
+        llm = LLM(**model_kwargs)
 
-        # Warmup the model
-        if torch.cuda.is_available():
-            with torch.no_grad():
-                _ = model.generate(**tokenizer("Warmup", return_tensors="pt").to(self.device),
-                                   max_new_tokens=1)
-
-        return model, tokenizer
+        return llm, sampling_params
 
     def _find_prompt(self):
         return prompt_dict[self.args.task]
-
-
 
     def _load_data(self) -> pd.DataFrame:
         """Load and prepare dataset"""
@@ -129,10 +104,10 @@ class ModelPipeline:
         data = pd.read_json(data_path)
         df = pd.DataFrame({
             'text': data['Body'] if 'Body' in data else None,
-            'question' : data['Question'],
-            'rephrased' : data['Rephrased'] if 'Rephrased' in data else None,
+            'question': data['Question'],
+            'rephrased': data['Rephrased'] if 'Rephrased' in data else None,
             'label': data['Answer'],
-            'answers' : data['Answers'] if 'Answers' in data else None,
+            'answers': data['Answers'] if 'Answers' in data else None,
         })
         log_message(f"Data loaded from: {data_path}, data size: {len(df.iloc[self.args.start:self.args.end])}", "INFO")
 
@@ -143,21 +118,18 @@ class ModelPipeline:
         log_message(f"Starting processing for rows {self.args.start} to {self.args.end}")
 
         perturbator = Perturbator(
-            self.model,
-            self.tokenizer,
+            self.llm,
+            None,  # vLLM handles tokenization internally
             self.prompt,
-            trigger_phrases
+            trigger_phrases,
         )
 
         results = []
-        batch_size = 4
+        batch_size = 8  # Can likely increase this with vLLM
 
         for batch_start in tqdm(range(0, len(self.data), batch_size),
-                                desc="Processing batches"):
+                              desc="Processing batches"):
             batch = self.data.iloc[batch_start:batch_start + batch_size]
-
-            # Pre-allocate GPU memory
-            torch.cuda.empty_cache()
 
             for _, row in batch.iterrows():
                 try:
@@ -175,7 +147,7 @@ class ModelPipeline:
                     })
                 except RuntimeError as e:
                     log_message(f"Error processing row {row.name}: {str(e)}")
-                    # Reduce batch size if OOM occurs
+                    # Reduce batch size if needed
                     batch_size = max(1, batch_size // 2)
                     break
 
@@ -191,6 +163,4 @@ class ModelPipeline:
         base_name = f"{self.args.task}_perturbed_outputs_{self.args.model}_{self.args.start}_{self.args.end}{quantisation_suffix}"
         results_df.to_json(output_dir / f"{base_name}.json", orient="records", indent=2)
 
-
         log_message(f"Results saved to {output_dir}/{base_name}.*")
-

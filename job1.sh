@@ -27,6 +27,8 @@ source ./thesis_venv/bin/activate
 
 pip install --upgrade pip
 pip install --quiet -r requirements.txt
+pip install --quiet vllm
+export HF_HOME=/tmp
 
 ROWS_PER_TASK=100
 
