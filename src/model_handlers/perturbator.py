@@ -4,6 +4,9 @@ from transformers import AutoConfig
 
 from src.utils.log_functions import log_message
 from src.utils.Enums import LEVEL
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class PerturbationGenerator:
