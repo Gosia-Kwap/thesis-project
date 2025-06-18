@@ -11,7 +11,7 @@ plot_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/
 analyser = UncertaintyCalibrationAnalyser(
     result_dir=result_dir,
     file_pattern=f"{task}_perturbed_outputs_{model}_*_uncertainty_{method}.json",
-    num_bins=15,
+    num_bins=10,
     mode="original"  # Use "original" to only analyze the original answers
 )
 

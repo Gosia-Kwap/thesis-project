@@ -324,7 +324,7 @@ class UncertaintyCalibrationAnalyser:
             flat_df['certainty'] = flat_df['uncertainty'].apply(lambda d: 1 - d[uncert_type])
 
             # Create bins based on certainty
-            bins = pd.cut(flat_df['certainty'], bins=self.num_bins)
+            bins = pd.qcut(flat_df['certainty'], q=self.num_bins)
 
             # Compute bin statistics
             bin_stats = (
@@ -348,7 +348,8 @@ class UncertaintyCalibrationAnalyser:
             prob_true, prob_pred = calibration_curve(
                 flat_df['correct'].astype(int),
                 flat_df['certainty'],
-                n_bins=self.num_bins
+                n_bins=self.num_bins,
+                strategy='quantile'
             )
 
             # Store results
