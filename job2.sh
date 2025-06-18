@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-2,4-13
-#SBATCH --job-name=GSM_test_gemma
+#SBATCH --array=0-13
+#SBATCH --job-name=GSM_llama
 #SBATCH --mem=10GB
 
 module purge
