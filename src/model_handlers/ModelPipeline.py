@@ -77,7 +77,7 @@ class ModelPipeline:
         model_name = MODEL_MAP[self.args.model]
 
         #log where the model is loaded to:
-        log_message(f"Model loaded to {os.getenv("HF_HOME")}", LEVEL.INFO)
+        log_message(f"Model loaded to {os.getenv('HF_HOME')}", LEVEL.INFO)
 
         # Load tokenizer
         tokenizer = AutoTokenizer.from_pretrained(
