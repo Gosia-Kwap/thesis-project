@@ -1,4 +1,5 @@
 import re
+import math
 import json
 import numpy as np
 import pandas as pd
@@ -8,12 +9,17 @@ from sklearn.calibration import calibration_curve
 from sklearn.metrics import brier_score_loss
 import scipy.stats as stats
 
+from src import uncertainty
+from src.utils.log_functions import log_message
+from src.utils.Enums import LEVEL
+from src.evaluate_uncertainty import extract_confidence
+
 import os
 import glob
 
 
 class UncertaintyCalibrationAnalyser:
-    def __init__(self, result_dir, file_pattern="*_uncertainty.json", num_bins=5, mode='all'):
+    def __init__(self, result_dir, file_pattern="*_uncertainty.json", num_bins=5, mode='original'):
         """
         Initialize the analyzer with multiple result files
 
@@ -26,7 +32,6 @@ class UncertaintyCalibrationAnalyser:
         self.result_files = self._find_result_files(result_dir, file_pattern)
         self.num_bins = num_bins
         self.df = self._load_and_preprocess_data()
-        self.bin_edges = np.linspace(0, 1, num_bins + 1)
         self.mode = mode
 
     def _find_result_files(self, result_dir, pattern):
@@ -54,17 +59,19 @@ class UncertaintyCalibrationAnalyser:
 
         return pd.concat(dfs, ignore_index=True)
 
-    def _get_uncertainty_bin(self, uncertainty):
-        """Assign uncertainty value to a bin"""
-        return pd.cut([uncertainty], bins=self.bin_edges, labels=range(self.num_bins))[0]
-
-    def analyze_calibration(self, unc_type: str = 'overall'):
+    def analyze_calibration_conf_unc(self, unc_type: str = 'overall'):
         # Flatten the data
         flat_df = self._get_flattened_data()
 
         # 1. Confidence Calibration
         conf_df = flat_df[flat_df['confidence'].notna()]
-        conf_bins = pd.cut(conf_df['confidence'], bins=self.num_bins)
+        print(f"# unique confidence values: {conf_df['confidence'].nunique()}")
+        try:
+            conf_bins = pd.qcut(conf_df['confidence'], q=self.num_bins, duplicates='drop')
+        except ValueError:
+            # fallback: if too few unique values, use pd.cut
+            log_message('Too few unique confidence values')
+            conf_bins = pd.cut(conf_df['confidence'], bins=self.num_bins)
         conf_stats = (
             conf_df.groupby(conf_bins)
             .agg(
@@ -81,7 +88,12 @@ class UncertaintyCalibrationAnalyser:
         flat_df['uncertainty'] = flat_df['uncertainty'].apply(lambda d: d.get(unc_type, None))
         flat_df['uncertainty'] = flat_df['uncertainty'].apply(lambda x: x[1] if isinstance(x, tuple) else x)
 
-        uncert_bins = pd.cut(flat_df['uncertainty'], bins=self.num_bins)
+        try:
+            uncert_bins = pd.qcut(conf_df['uncertainty'], q=self.num_bins, duplicates='drop')
+        except ValueError:
+            # fallback: if too few unique values, use pd.cut
+            log_message('Too few uncertainty values')
+            uncert_bins = pd.cut(conf_df['uncertainty'], bins=self.num_bins)
         uncert_stats = (
             flat_df.groupby(uncert_bins)
             .agg(
@@ -99,20 +111,12 @@ class UncertaintyCalibrationAnalyser:
             'confidence': {
                 'bin_stats': conf_stats,
                 'ece': conf_ece,
-                'calibration_curve': calibration_curve(
-                    conf_df['correct'].astype(int),
-                    conf_df['confidence'],
-                    n_bins=self.num_bins
-                )
+                'calibration_curve': (conf_stats['accuracy'].to_numpy(), conf_stats['mean_confidence'].to_numpy())
             },
             'uncertainty': {
                 'bin_stats': uncert_stats,
                 'ece': uncert_ece,
-                'calibration_curve': calibration_curve(
-                    flat_df['correct'].astype(int),
-                    1 - flat_df['uncertainty'],
-                    n_bins=self.num_bins
-                )
+                'calibration_curve': (uncert_stats['accuracy'].to_numpy(), uncert_stats['mean_certainty'].to_numpy())
             }
         }
 
@@ -121,6 +125,8 @@ class UncertaintyCalibrationAnalyser:
         for _, row in self.df.iterrows():
             # Original answer
             if self.mode == 'original':
+                if math.isnan(row['original_confidence']):
+                    row['original_confidence'] = extract_confidence(row['original_answer_text'][0])
                 flat_data.append({
                     'idx': row['idx'],
                     'uncertainty': row['uncertainty'],
@@ -144,7 +150,17 @@ class UncertaintyCalibrationAnalyser:
                             'perturbation': perturb_type,
                             'expected': row['expected_output']
                         })
-        return pd.DataFrame(flat_data)
+
+        # Turn into DataFrame
+        flat_df = pd.DataFrame(flat_data)
+
+        # log NaN counts
+        nan_conf_count = flat_df['confidence'].isna().sum()
+        nan_answer_count = flat_df['answer'].isna().sum()
+
+        log_message(f"Number of NaN confidence values: {nan_conf_count}")
+        log_message(f"Number of NaN answer values: {nan_answer_count}")
+        return flat_df
 
     def _calculate_ece(self, bin_stats, pred_col, total_samples):
         """Generic ECE calculation that works for both metrics"""
@@ -171,8 +187,8 @@ class UncertaintyCalibrationAnalyser:
         with open(output_path, 'w') as f:
             json.dump(results, f, indent=2)
 
-    def generate_uncertainty_comparison(self, save_dir=None, model:str ='SVAMP'):
-        """Generate comparison plots for all uncertainty types"""
+    def generate_distribution_comparison_per_uncertainty(self, save_dir=None, model:str = 'SVAMP'):
+        """Generate distribution comparison of uncertainty mean for correct and incorrect for all uncertainty types"""
         flat_df = self._get_flattened_data()
         results = {}
 
@@ -181,7 +197,7 @@ class UncertaintyCalibrationAnalyser:
             flat_df['current_uncert'] = flat_df['uncertainty'].apply(lambda d: d[uncert_type])
 
             self._plot_uncertainty_distribution(flat_df, uncert_type, save_dir, model)
-            stats_df = self._run_uncertainty_stats(flat_df, uncert_type)
+            stats_df = self._run_uncertainty_stats(flat_df)
             results[uncert_type] = stats_df
 
         return results
@@ -205,11 +221,11 @@ class UncertaintyCalibrationAnalyser:
             plt.show()
         plt.close()
 
-    def _run_uncertainty_stats(self, df, uncert_type):
+    def _run_uncertainty_stats(self, df):
         """Run t-tests comparing uncertainty values for correct vs incorrect predictions"""
         stats_results = []
 
-        for perturb in df['perturbation'].unique():
+        for perturb in df['perturbation'].unique():     # perturbation type is for if you analyse not only the original sample's distribution (resigned from it but just in case let's leave it here)
             subset = df[df['perturbation'] == perturb]
             if len(subset) > 1:
                 correct_values = subset[subset['correct']]['current_uncert']
@@ -230,28 +246,72 @@ class UncertaintyCalibrationAnalyser:
 
         return pd.DataFrame(stats_results)
 
-    def plot_comparison(self, analysis_results, save_path=None):
+    def plot_calibration_unc_conf(self, analysis_results, save_path=None):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
         # Confidence plot
         conf = analysis_results['confidence']
-        ax1.plot(conf['calibration_curve'][1], conf['calibration_curve'][0], 's-')
+        conf_curve_y, conf_curve_x = conf['calibration_curve']
+        conf_stats = conf['bin_stats']
+
+        ax1.plot(conf_curve_x, conf_curve_y, 'o-', color='orange', label='Calibration curve')
+        ax1.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
         ax1.set_title(f'Confidence Calibration (ECE={conf["ece"]:.3f})')
+        ax1.set_xlabel('Predicted Probability')
+        ax1.set_ylabel('Actual Accuracy')
+        ax1.grid(True)
 
-        # Uncertainty plot (note: 1-uncertainty = "certainty")
+        # Bar chart showing counts per bin
+        ax1b = ax1.twinx()
+        bin_width = (conf_curve_x.max() - conf_curve_x.min()) / len(conf_curve_x)
+        bin_width = (conf_stats['mean_confidence'].max() - conf_stats['mean_confidence'].min()) / len(conf_stats)
+        bar_width = bin_width * 0.8
+        max_count = conf_stats['count'].max()
+        conf_stats['count_scaled'] = conf_stats['count'] / (max_count * 4)
+
+        # Plot bars
+        ax1b.bar(conf_stats['mean_confidence'], conf_stats['count_scaled'],
+                 width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
+
+        # Set limits so calibration curve isn’t distorted
+        ax1b.set_ylim(0, 1)
+        ax1b.set_ylabel('Count (scaled)', color='blue')
+        ax1b.tick_params(axis='y', labelcolor='blue')
+
+        # Uncertainty plot
         uncert = analysis_results['uncertainty']
-        ax2.plot(uncert['bin_stats']['mean_certainty'],
-                 uncert['bin_stats']['accuracy'], 'o-')
+        uncert_curve_y, uncert_curve_x = uncert['calibration_curve']
+        uncert_stats = uncert['bin_stats']
+
+        ax2.plot(uncert_curve_x, uncert_curve_y, 'o-', color='orange', label='Calibration curve')
+        ax2.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
         ax2.set_title(f'Uncertainty Calibration (ECE={uncert["ece"]:.3f})')
+        ax2.set_xlabel('Predicted Probability')
+        ax2.set_ylabel('Actual Accuracy')
+        ax2.grid(True)
 
-        for ax in (ax1, ax2):
-            ax.plot([0, 1], [0, 1], 'k--')
-            ax.set_xlabel('Predicted Probability')
-            ax.set_ylabel('Actual Accuracy')
-            ax.grid(True)
+        # Bar chart showing counts per bin
+        ax2b = ax2.twinx()
+        bin_width = (uncert_stats['mean_certainty'].max() - uncert_stats['mean_certainty'].min()) / len(uncert_stats)
+        bar_width = bin_width * 0.8
+        max_count = uncert_stats['count'].max()
+        uncert_stats['count_scaled'] = uncert_stats['count'] / (max_count * 4)
 
+        # Plot bars
+        ax2b.bar(uncert_stats['mean_certainty'], uncert_stats['count_scaled'],
+                 width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
+
+        # Set limits so calibration curve isn’t distorted
+        # THIS IS NOT TRUE ATM
+        ax2b.set_ylim(0, 1)
+        ax2b.set_ylabel('Count (scaled)', color='blue')
+        ax2b.tick_params(axis='y', labelcolor='blue')
+
+        fig.tight_layout()
+
+        if save_path:
+            plt.savefig(f"{save_path}_calibration.png", bbox_inches='tight')
         plt.show()
-
         plt.close()
 
     def analyze_all_uncertainties(self):
@@ -300,7 +360,7 @@ class UncertaintyCalibrationAnalyser:
 
         return results
 
-    def plot_uncertainty_calibration(self, analysis_results, save_dir=None):
+    def plot_calibration_all_unc(self, analysis_results, save_dir=None):
         """Plot calibration curves for all uncertainty types"""
         fig, axes = plt.subplots(2, 2, figsize=(14, 12))
         axes = axes.flatten()
