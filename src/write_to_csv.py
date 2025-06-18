@@ -35,6 +35,6 @@ def convert_json_folder_to_csv_excel(folder_path, output_csv="output.csv", outpu
     df.to_excel(output_excel, index=False)
     print(f"Saved Excel to: {output_excel}")
 
-path = r"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/uncertainty"
+path = r"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/uncertainty-new"
 output_dir = r"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/csv"
 convert_json_folder_to_csv_excel(path, output_csv=f"{output_dir}/output.csv", output_excel=f"{output_dir}/output.xlsx")
