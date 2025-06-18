@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=gemma27b_svamp_trial
+#SBATCH --job-name=gemma9b_try_quant
 #SBATCH --mem=20GB
 
 module purge
@@ -38,6 +38,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model gemma27b --start ${START_INDEX} --end ${END_INDEX}
+python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --quantisation
 
 deactivate
