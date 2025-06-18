@@ -6,8 +6,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0
-#SBATCH --job-name=gemma9_try_tmp_dir
-#SBATCH --mem=20GB
+#SBATCH --job-name=gemma9_try_tmp_dir_lessmem
+#SBATCH --mem=10GB
 
 module purge
 
