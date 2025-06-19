@@ -34,6 +34,9 @@ ROWS_PER_TASK=100
 START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
+# Prepare env
+export HF_HOME=/tmp
+
 # Run the script with args
 python -m src.main --model llama3 --start ${START_INDEX} --end ${END_INDEX} --task GSM8K
 
