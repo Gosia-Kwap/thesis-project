@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-13
-#SBATCH --job-name=evaluate_entailment_llama_gsm8k
+#SBATCH --job-name=evaluate_actual_entail_llama_gsm8k
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cosine --task SVAMP
+python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method entailment_prob --task SVAMP
 
 deactivate
