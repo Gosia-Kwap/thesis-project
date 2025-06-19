@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama  --index ${START_INDEX} --method entailment_prob --task GSM8K
+python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method entailment_prob --task GSM8K
 
 deactivate
