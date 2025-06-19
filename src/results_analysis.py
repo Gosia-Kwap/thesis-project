@@ -3,8 +3,10 @@ from src.uncertainty.UncertaintyCalibrationAnalyser import UncertaintyCalibratio
 task = "SVAMP"
 model = 'llama3'
 method = 'cosine'
-result_dir = "/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/uncertainty"
-plot_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/plots/{task}/"
+result_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/uncertainty"
+plot_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/plots/{task}/{method}"
+stats_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/stats/{task}/{model}_{method}"
+
 
 
 # Initialize the analyser with the directory containing results
@@ -16,9 +18,9 @@ analyser = UncertaintyCalibrationAnalyser(
 )
 
 # Analyze calibration (confidence and overall uncertainty)
-analysis_results = analyser.analyze_calibration_conf_unc()
-
-# Plot calibration comparison
+analysis_results = analyser.analyze_calibration_conf_unc(save_dir=stats_dir)
+#
+# # Plot calibration comparison
 analyser.plot_calibration_unc_conf(analysis_results, f"{plot_dir}/{model}")
 
 # Optional: Save results to JSON
@@ -26,10 +28,10 @@ analyser.plot_calibration_unc_conf(analysis_results, f"{plot_dir}/{model}")
 # analyser.save_results(analysis_results['uncertainty'], 'uncertainty_results.json')
 
 # Compare uncertainty distributions across types and perturbations
-uncertainty_distributions = analyser.generate_distribution_comparison_per_uncertainty(save_dir=plot_dir, model=model)
+uncertainty_distributions = analyser.generate_distribution_comparison_per_uncertainty(plot_dir=plot_dir, model=model, stats_dir=stats_dir)
 
 # Perform separate calibration analysis per uncertainty type (overall, temp, trigger, rephrase)
-all_uncertainty_results = analyser.analyze_all_uncertainties()
+all_uncertainty_results = analyser.analyze_all_uncertainties(save_path=stats_dir)
 
 # Plot calibration curves for each uncertainty type
 analyser.plot_calibration_all_unc(all_uncertainty_results, save_dir=f"{plot_dir}/{model}")
