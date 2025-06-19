@@ -4,21 +4,6 @@ Script for generating perturbed outputs from language models
 
 import os
 from pathlib import Path
-
-# # Set these BEFORE importing transformers
-# scratch_dir = Path(f"/scratch/{os.environ['USER']}/huggingface")
-# tmp_dir = Path(f"/scratch/{os.environ['USER']}/tmp")
-# scratch_dir.mkdir(parents=True, exist_ok=True)
-# tmp_dir.mkdir(parents=True, exist_ok=True)
-#
-# os.environ.update({
-#     "HF_HOME": str(scratch_dir),
-#     "HF_HUB_CACHE": str(scratch_dir),
-#     "TMPDIR": str(tmp_dir),
-#     "TOKENIZERS_PARALLELISM": "false",
-#     "PYTORCH_CUDA_ALLOC_CONF": "max_split_size_mb:128"
-# })
-
 from typing import Dict, List
 import pandas as pd
 import torch
@@ -48,14 +33,6 @@ class ModelPipeline:
         self.model, self.tokenizer = self._load_model_and_tokenizer()
         self.data = self._load_data()
         self.prompt = self._find_prompt()
-
-    def _setup_environment(self):
-        """Configure environment variables and directories"""
-        self.scratch_dir = Path(f"/scratch/{os.environ['USER']}/huggingface")
-        self.tmp_dir = Path(f"/scratch/{os.environ['USER']}/tmp")
-
-        self.scratch_dir.mkdir(parents=True, exist_ok=True)
-        self.tmp_dir.mkdir(parents=True, exist_ok=True)
 
     def _validate_arguments(self):
         """Validate input arguments"""
