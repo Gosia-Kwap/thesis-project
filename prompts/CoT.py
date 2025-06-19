@@ -36,4 +36,5 @@ prompt_dict = {
     "GSM8K": generic_prompt,
     "CommonsenseQA": prompt_single_choice,
     "ai2_arc": prompt_single_choice,
+    "logiqa": prompt_single_choice,
 }
