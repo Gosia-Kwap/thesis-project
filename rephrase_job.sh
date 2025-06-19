@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --job-name=rephrase_dataset_q
-#SBATCH --mem=10GB
+#SBATCH --mem=5GB
 ś
 module purge
 
