@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=03:30:00
+#SBATCH --time=04:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-3
-#SBATCH --job-name=logiqa_gemma_fix
+#SBATCH --array=0-15
+#SBATCH --job-name=cqa-llama
 #SBATCH --mem=10GB
 
 module purge
@@ -38,6 +38,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --task logiqa
+python -m src.main --model llama3 --start ${START_INDEX} --end ${END_INDEX} --task CommonsenseQA
 
 deactivate
