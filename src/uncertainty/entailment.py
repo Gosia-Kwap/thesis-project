@@ -28,7 +28,7 @@ def get_entailment_score(premise, hypothesis):
         int: Entailment score (-1 for contradiction, 0 for neutral, 1 for entailment).
     """
     # Tokenize the input pair
-    inputs = tokenizer(premise, hypothesis, return_tensors="pt", truncation=True, padding=True)
+    inputs = tokenizer(premise, hypothesis, return_tensors="pt", padding=True)
     inputs = {k: v.to(device) for k, v in inputs.items()}  # Move inputs to the same device as the model
 
     # Get model predictions
