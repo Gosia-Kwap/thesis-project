@@ -143,8 +143,7 @@ class ProbingUncertaintyEstimator:
 
             result = {
                 "contradiction": probs[0].item(),
-                "neutral": probs[1].item(),
-                "entailment": probs[2].item()
+                "entailment": probs[1].item()
             } if return_probs else torch.argmax(logits, dim=1).item() / 2
 
             return result
