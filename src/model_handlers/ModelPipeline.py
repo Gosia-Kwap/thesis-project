@@ -130,7 +130,7 @@ class ModelPipeline:
         )
 
         results = []
-        batch_size = 8
+        batch_size = 4
 
         for batch_start in tqdm(range(0, len(self.data), batch_size),
                                 desc="Processing batches"):
