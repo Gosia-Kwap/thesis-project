@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-13
+#SBATCH --array=0-9
 #SBATCH --job-name=evaluate_entailment_llama_svamp
 #SBATCH --mem=10GB
 
