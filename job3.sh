@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-15
-#SBATCH --job-name=logiqa_gemma
+#SBATCH --job-name=logiqa_llama
 #SBATCH --mem=5GB
 
 module purge
@@ -38,6 +38,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --task logiqa
+python -m src.main --model llama3 --start ${START_INDEX} --end ${END_INDEX} --task logiqa
 
 deactivate
