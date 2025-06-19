@@ -19,7 +19,7 @@ analyser = UncertaintyCalibrationAnalyser(
 analysis_results = analyser.analyze_calibration_conf_unc()
 
 # Plot calibration comparison
-analyser.plot_calibration_unc_conf(analysis_results, f"{plot_dir}_{model}_calibration.png")
+analyser.plot_calibration_unc_conf(analysis_results, f"{plot_dir}/{model}")
 
 # Optional: Save results to JSON
 # analyser.save_results(analysis_results['confidence'], 'confidence_results.json')
@@ -32,7 +32,7 @@ uncertainty_distributions = analyser.generate_distribution_comparison_per_uncert
 all_uncertainty_results = analyser.analyze_all_uncertainties()
 
 # Plot calibration curves for each uncertainty type
-analyser.plot_calibration_all_unc(all_uncertainty_results, save_dir=plot_dir)
+analyser.plot_calibration_all_unc(all_uncertainty_results, save_dir=f"{plot_dir}/{model}")
 
 # Compare results
 print("Confidence ECE:", analysis_results['confidence']['ece'])

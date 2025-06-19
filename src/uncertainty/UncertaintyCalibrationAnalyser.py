@@ -386,7 +386,7 @@ class UncertaintyCalibrationAnalyser:
 
         plt.tight_layout()
         if save_dir:
-            plt.savefig(f"{save_dir}/uncertainty_calibration_comparison.png", dpi=300)
+            plt.savefig(f"{save_dir}_uncertainty_calibration_comparison.png", dpi=300)
         else:
             plt.show()
         plt.close()
