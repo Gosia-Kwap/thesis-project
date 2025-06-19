@@ -64,8 +64,6 @@ class ProbingUncertaintyEstimator:
             self.classification_model.to(self.device)
             self.embedding_model.to(self.device)
 
-            load_time = time.time() - start_time
-
         except Exception as e:
             log_message(f"Failed to load models: {str(e)}", LEVEL.ERROR)
             raise
@@ -147,7 +145,7 @@ class ProbingUncertaintyEstimator:
                 "contradiction": probs[0].item(),
                 "neutral": probs[1].item(),
                 "entailment": probs[2].item()
-            } if return_probs else torch.argmax(logits, dim=1).item() - 1
+            } if return_probs else torch.argmax(logits, dim=1).item() / 2
 
             return result
 
@@ -166,7 +164,7 @@ class ProbingUncertaintyEstimator:
             if method.startswith('entailment'):
                 if method == 'entailment_prob':
                     probs = self._get_entailment_score(text1, text2, return_probs=True)
-                    result = probs['entailment'] - probs['contradiction']
+                    result = (probs['entailment'] - probs['contradiction'] + 1) / 2
                 else:
                     result = self._get_entailment_score(text1, text2)
             else:
