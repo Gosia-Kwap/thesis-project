@@ -24,9 +24,10 @@ source ./thesis_venv/bin/activate
 pip install --upgrade pip
 pip install --quiet -r requirements.txt
 
+export HF_HOME=/tmp
 
 
 # Run the script with args
-python -m src.rephrase_questions --task GSM8K
+python -m src.rephrase_questions --task CommonsenseQA
 
 deactivate
