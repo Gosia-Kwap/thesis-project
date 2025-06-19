@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --job-name=evaluate_results_llama
+#SBATCH --job-name=rephrase_dataset_q
 #SBATCH --mem=10GB
 ś
 module purge
