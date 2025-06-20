@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-13
+#SBATCH --array=0-15
 #SBATCH --job-name=evaluate_llama_logiqa_cos
 #SBATCH --mem=10GB
 
