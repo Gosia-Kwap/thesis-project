@@ -14,6 +14,11 @@ class LEVEL(Enum):
     DEBUG = "DEBUG"
 
 format_dict = {
+    'logiqa': 'label',
     'SVAMP': 'int',
     'GSM8K': 'int',
+    'CommonsenseQA': 'label',
+    'ai2_arc': 'label',
+    'ASDiv': 'int'
+
 }
