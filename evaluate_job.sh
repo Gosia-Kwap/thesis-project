@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=03:00:00
+#SBATCH --time=04:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-13
-#SBATCH --job-name=evaluate_llama_cos_gsm8k
+#SBATCH --job-name=evaluate_gemma_entail_svamp
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cosine --task GSM8K
+python -m src.evaluate_uncertainty --model gemma  --index ${START_INDEX} --method entailment_prob --task SVAMP
 
 deactivate
