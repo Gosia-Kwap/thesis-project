@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method entailment --task svamp
+python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method entailment --task SVAMP
 
 deactivate
