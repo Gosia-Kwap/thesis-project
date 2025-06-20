@@ -5,8 +5,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-15
-#SBATCH --job-name=evaluate_llama_logiqa_cos
+#SBATCH --array=0-9
+#SBATCH --job-name=evaluate_svamp_llama_entail
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cos --task logiqa
+python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method entailment --task svamp
 
 deactivate
