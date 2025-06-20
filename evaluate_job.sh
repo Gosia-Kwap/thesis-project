@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-15
-#SBATCH --job-name=evaluate_llama_logiqa_cos
+#SBATCH --job-name=evaluate_llama_logiqa_entail
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cosine --task logiqa
+python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method entailment_prob --task logiqa
 
 deactivate
