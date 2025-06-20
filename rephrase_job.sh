@@ -28,6 +28,6 @@ export HF_HOME=/tmp
 
 
 # Run the script with args
-python -m src.rephrase_questions --task logiqa
+python -m src.rephrase_questions --task ASDiv
 
 deactivate
