@@ -1,8 +1,8 @@
 from src.uncertainty.UncertaintyCalibrationAnalyser import UncertaintyCalibrationAnalyser
 
-task = "SVAMP"
-model = 'gemma9b'
-method = 'entailment_prob'
+task = "logiqa"
+model = 'gemma'
+method = 'cosine'
 result_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/uncertainty/"
 plot_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/plots/{task}/{task}_{method}_{model}"
 stats_dir = f"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/stats/{task}/{model}_{method}"
@@ -21,7 +21,7 @@ analyser = UncertaintyCalibrationAnalyser(
 analysis_results = analyser.analyze_calibration_conf_unc(save_dir=stats_dir)
 #
 # # Plot calibration comparison
-analyser.plot_calibration_unc_conf(analysis_results, plot_dir)
+analyser.plot_calibration_unc_conf(analysis_results, plot_dir, mode='confidence')
 
 # Compare uncertainty distributions across types and perturbations
 uncertainty_distributions = analyser.generate_distribution_comparison_per_uncertainty(plot_dir=plot_dir, stats_dir=stats_dir)
@@ -34,5 +34,11 @@ analyser.plot_calibration_all_unc(all_uncertainty_results, save_dir=plot_dir)
 # Compare results
 print("Confidence ECE:", analysis_results['confidence']['ece'])
 print("Uncertainty ECE:", analysis_results['uncertainty']['ece'])
+
+results = {
+    "calibration": analysis_results,
+    "distribution": uncertainty_distributions,
+    "all_uncertainties_calibration": all_uncertainty_results,
+}
 
 

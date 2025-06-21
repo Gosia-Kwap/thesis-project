@@ -59,7 +59,7 @@ class UncertaintyCalibrationAnalyser:
 
         return pd.concat(dfs, ignore_index=True)
 
-    def analyze_calibration_conf_unc(self, unc_type: str = 'overall'):
+    def analyze_calibration_conf_unc(self, unc_type: str = 'overall', save_dir=None):
         # Flatten the data
         flat_df = self._get_flattened_data()
 
@@ -107,7 +107,7 @@ class UncertaintyCalibrationAnalyser:
         )
         uncert_ece = self._calculate_ece(uncert_stats, 'mean_certainty', len(flat_df))
 
-        return {
+        results =  {
             'confidence': {
                 'bin_stats': conf_stats,
                 'ece': conf_ece,
@@ -120,13 +120,18 @@ class UncertaintyCalibrationAnalyser:
             }
         }
 
+        if save_dir:
+            self.save_calibration_conf_unc(results, f"{save_dir}_calibration_unc_conf_results.json")
+
+        return results
+
     def _get_flattened_data(self):
         flat_data = []
         for _, row in self.df.iterrows():
             # Original answer
             if self.mode == 'original':
                 if math.isnan(row['original_confidence']):
-                    row['original_confidence'] = extract_confidence(row['original_answer_text'][0])
+                    row['original_confidence'] = extract_confidence(row['full_original_answer'])
                 flat_data.append({
                     'idx': row['idx'],
                     'uncertainty': row['uncertainty'],
@@ -170,53 +175,83 @@ class UncertaintyCalibrationAnalyser:
         )
 
     def save_results(self, analysis_results, output_path):
-        # NEEDS ADJUSTMENT!!!!
-        """Save analysis results to JSON file"""
-        results = {
-            'metrics': {
-                'ece': analysis_results['ece'],
-                'brier': analysis_results['brier']
-            },
-            'bin_stats': analysis_results['bin_stats'].to_dict(orient='records'),
-            'calibration_curve': {
-                'prob_true': analysis_results['calibration_curve'][0].tolist(),
-                'prob_pred': analysis_results['calibration_curve'][1].tolist()
-            }
-        }
+        def convert(obj):
+            if isinstance(obj, dict):
+                return {convert(k): convert(v) for k, v in obj.items()}
+            elif isinstance(obj, pd.DataFrame):
+                return obj.to_dict(orient="list")  # or "records" if you prefer row-wise dicts
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, (np.float32, np.float64, np.float16)):
+                return float(obj)
+            elif isinstance(obj, (np.int32, np.int64)):
+                return int(obj)
+            elif isinstance(obj, tuple):
+                return [convert(o) for o in obj]
+            elif isinstance(obj, list):
+                return [convert(v) for v in obj]
+            elif isinstance(obj, pd.Interval):
+                return str(obj)
+            else:
+                return obj
+
+        cleaned = convert(analysis_results)
 
         with open(output_path, 'w') as f:
-            json.dump(results, f, indent=2)
+            json.dump(cleaned, f, indent=2)
 
-    def generate_distribution_comparison_per_uncertainty(self, save_dir=None, model:str = 'SVAMP'):
-        """Generate distribution comparison of uncertainty mean for correct and incorrect for all uncertainty types"""
+    def generate_distribution_comparison_per_uncertainty(self, plot_dir=None, stats_dir: str = None):
+        """Generate combined distribution comparison plot for all uncertainty types"""
         flat_df = self._get_flattened_data()
         results = {}
 
+        # Prepare data for plotting - combine all uncertainty types
+        plot_data = []
         for uncert_type in ['overall', 'temp', 'trigger', 'rephrase']:
-            # Create certainty or uncertainty column for plotting
-            flat_df['current_uncert'] = flat_df['uncertainty'].apply(lambda d: d[uncert_type])
+            temp_df = flat_df.copy()
+            temp_df['current_uncert'] = temp_df['uncertainty'].apply(lambda d: d[uncert_type])
+            temp_df['uncertainty_type'] = uncert_type
+            plot_data.append(temp_df)
 
-            self._plot_uncertainty_distribution(flat_df, uncert_type, save_dir, model)
-            stats_df = self._run_uncertainty_stats(flat_df)
+        combined_df = pd.concat(plot_data)
+        self._plot_uncertainty_distribution(combined_df, plot_dir)
+
+        # Still generate individual stats for each type
+        for uncert_type in ['overall', 'temp', 'trigger', 'rephrase']:
+            stats_df = self._run_uncertainty_stats(
+                combined_df[combined_df['uncertainty_type'] == uncert_type]
+            )
             results[uncert_type] = stats_df
+
+        if stats_dir:
+            self.save_results(results, f"{stats_dir}_distribution_results.json")
 
         return results
 
-    def _plot_uncertainty_distribution(self, df, uncert_type, save_dir, model: str):
+    def _plot_uncertainty_distribution(self, combined_df, plot_dir):
         """Plot uncertainty distribution as boxplot by correctness"""
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(
-            x="perturbation",
+        # Create single comparison plot
+        plt.figure(figsize=(16, 8))
+        ax = sns.boxplot(
+            x="uncertainty_type",
             y="current_uncert",
             hue="correct",
-            data=df,
-            palette={True: "green", False: "red"}
+            data=combined_df,
+            palette={True: "green", False: "red"},
+            order=['overall', 'temp', 'trigger', 'rephrase']
         )
-        plt.title(f"{uncert_type.capitalize()} Uncertainty Distribution")
-        plt.ylabel("Uncertainty Score")
 
-        if save_dir:
-            plt.savefig(f"{save_dir}/{model}_{uncert_type}_distribution.png", bbox_inches='tight')
+        plt.title("Uncertainty Distribution Comparison by Type")
+        plt.xlabel("Uncertainty Type")
+        plt.ylabel("Uncertainty Score")
+        plt.legend(title="Correct", labels=["Correct", "Incorrect"])
+
+        # Add statistical annotations if desired
+        # (Could add significance markers here)
+
+        if plot_dir:
+            plt.savefig(f"{plot_dir}_combined_uncertainty_distributions.png",
+                        bbox_inches='tight', dpi=300)
         else:
             plt.show()
         plt.close()
@@ -241,80 +276,90 @@ class UncertaintyCalibrationAnalyser:
                         'perturbation': perturb,
                         'mean_correct': correct_values.mean(),
                         'mean_incorrect': incorrect_values.mean(),
-                        'p_value': p_value
+                        'p_value': p_value,
+                        't_stat': t_stat,
                     })
 
         return pd.DataFrame(stats_results)
 
-    def plot_calibration_unc_conf(self, analysis_results, save_path=None):
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    def plot_calibration_unc_conf(self, analysis_results, save_path=None, mode='both'):
+        """Plot calibration curves with mode options:
+        - 'both': show confidence and uncertainty plots side-by-side (default)
+        - 'confidence': show only confidence calibration
+        - 'uncertainty': show only uncertainty calibration
+        """
+        # Create appropriate figure layout based on mode
+        if mode == 'both':
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        else:
+            fig, ax = plt.subplots(figsize=(7, 6))
+            ax1 = ax if mode == 'confidence' else None
+            ax2 = ax if mode == 'uncertainty' else None
 
         # Confidence plot
-        conf = analysis_results['confidence']
-        conf_curve_y, conf_curve_x = conf['calibration_curve']
-        conf_stats = conf['bin_stats']
+        if mode in ['both', 'confidence']:
+            conf = analysis_results['confidence']
+            conf_curve_y, conf_curve_x = conf['calibration_curve']
+            conf_stats = conf['bin_stats']
 
-        ax1.plot(conf_curve_x, conf_curve_y, 'o-', color='orange', label='Calibration curve')
-        ax1.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
-        ax1.set_title(f'Confidence Calibration (ECE={conf["ece"]:.3f})')
-        ax1.set_xlabel('Predicted Probability')
-        ax1.set_ylabel('Actual Accuracy')
-        ax1.grid(True)
+            ax1.plot(conf_curve_x, conf_curve_y, 'o-', color='orange', label='Calibration curve')
+            ax1.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
+            ax1.set_title(f'Confidence Calibration (ECE={conf["ece"]:.3f})')
+            ax1.set_xlabel('Predicted Probability')
+            ax1.set_ylabel('Actual Accuracy')
+            ax1.grid(True)
+            ax1.legend()
 
-        # Bar chart showing counts per bin
-        ax1b = ax1.twinx()
-        bin_width = (conf_curve_x.max() - conf_curve_x.min()) / len(conf_curve_x)
-        bin_width = (conf_stats['mean_confidence'].max() - conf_stats['mean_confidence'].min()) / len(conf_stats)
-        bar_width = bin_width * 0.8
-        max_count = conf_stats['count'].max()
-        conf_stats['count_scaled'] = conf_stats['count'] / (max_count * 4)
+            # Bar chart showing counts per bin
+            ax1b = ax1.twinx()
+            bin_width = (conf_stats['mean_confidence'].max() - conf_stats['mean_confidence'].min()) / len(conf_stats)
+            bar_width = bin_width * 0.8
+            max_count = conf_stats['count'].max()
+            conf_stats['count_scaled'] = conf_stats['count'] / (max_count * 4)
 
-        # Plot bars
-        ax1b.bar(conf_stats['mean_confidence'], conf_stats['count_scaled'],
-                 width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
-
-        # Set limits so calibration curve isn’t distorted
-        ax1b.set_ylim(0, 1)
-        ax1b.set_ylabel('Count (scaled)', color='blue')
-        ax1b.tick_params(axis='y', labelcolor='blue')
+            ax1b.bar(conf_stats['mean_confidence'], conf_stats['count_scaled'],
+                     width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
+            ax1b.set_ylim(0, 1)
+            ax1b.set_ylabel('Count (scaled)', color='blue')
+            ax1b.tick_params(axis='y', labelcolor='blue')
 
         # Uncertainty plot
-        uncert = analysis_results['uncertainty']
-        uncert_curve_y, uncert_curve_x = uncert['calibration_curve']
-        uncert_stats = uncert['bin_stats']
+        if mode in ['both', 'uncertainty']:
+            uncert = analysis_results['uncertainty']
+            uncert_curve_y, uncert_curve_x = uncert['calibration_curve']
+            uncert_stats = uncert['bin_stats']
 
-        ax2.plot(uncert_curve_x, uncert_curve_y, 'o-', color='orange', label='Calibration curve')
-        ax2.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
-        ax2.set_title(f'Uncertainty Calibration (ECE={uncert["ece"]:.3f})')
-        ax2.set_xlabel('Predicted Probability')
-        ax2.set_ylabel('Actual Accuracy')
-        ax2.grid(True)
+            ax2.plot(uncert_curve_x, uncert_curve_y, 'o-', color='orange', label='Calibration curve')
+            ax2.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
+            ax2.set_title(f'Uncertainty Calibration (ECE={uncert["ece"]:.3f})')
+            ax2.set_xlabel('Predicted Probability')
+            ax2.set_ylabel('Actual Accuracy')
+            ax2.grid(True)
+            ax2.legend()
 
-        # Bar chart showing counts per bin
-        ax2b = ax2.twinx()
-        bin_width = (uncert_stats['mean_certainty'].max() - uncert_stats['mean_certainty'].min()) / len(uncert_stats)
-        bar_width = bin_width * 0.8
-        max_count = uncert_stats['count'].max()
-        uncert_stats['count_scaled'] = uncert_stats['count'] / (max_count * 4)
+            # Bar chart showing counts per bin
+            ax2b = ax2.twinx()
+            bin_width = (uncert_stats['mean_certainty'].max() - uncert_stats['mean_certainty'].min()) / len(
+                uncert_stats)
+            bar_width = bin_width * 0.8
+            max_count = uncert_stats['count'].max()
+            uncert_stats['count_scaled'] = uncert_stats['count'] / (max_count * 4)
 
-        # Plot bars
-        ax2b.bar(uncert_stats['mean_certainty'], uncert_stats['count_scaled'],
-                 width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
-
-        # Set limits so calibration curve isn’t distorted
-        # THIS IS NOT TRUE ATM
-        ax2b.set_ylim(0, 1)
-        ax2b.set_ylabel('Count (scaled)', color='blue')
-        ax2b.tick_params(axis='y', labelcolor='blue')
+            ax2b.bar(uncert_stats['mean_certainty'], uncert_stats['count_scaled'],
+                     width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
+            ax2b.set_ylim(0, 1)
+            ax2b.set_ylabel('Count (scaled)', color='blue')
+            ax2b.tick_params(axis='y', labelcolor='blue')
 
         fig.tight_layout()
 
         if save_path:
-            plt.savefig(f"{save_path}_calibration.png", bbox_inches='tight')
-        plt.show()
+            plt.savefig(f"{save_path}_calibration_{mode}.png", bbox_inches='tight', dpi=300)
+        else:
+            plt.show()
         plt.close()
 
-    def analyze_all_uncertainties(self):
+    def analyze_all_uncertainties(self, save_path=None):
         """Analyze all uncertainty types (overall, temp, trigger, rephrase)"""
         flat_df = self._get_flattened_data()
         results = {}
@@ -324,7 +369,7 @@ class UncertaintyCalibrationAnalyser:
             flat_df['certainty'] = flat_df['uncertainty'].apply(lambda d: 1 - d[uncert_type])
 
             # Create bins based on certainty
-            bins = pd.qcut(flat_df['certainty'], q=self.num_bins)
+            bins = pd.qcut(flat_df['certainty'], q=self.num_bins, duplicates='drop')
 
             # Compute bin statistics
             bin_stats = (
@@ -358,6 +403,14 @@ class UncertaintyCalibrationAnalyser:
                 'ece': ece,
                 'calibration_curve': (prob_true, prob_pred)
             }
+        #
+        if save_path:
+            savable_results = {}
+            for uncert_type in ['overall', 'temp', 'trigger', 'rephrase']:
+                savable_results[uncert_type] = {
+                    'ece': results[uncert_type]['ece'],
+                }
+            self.save_results(savable_results, f"{save_path}_calibration_per_unc_results.json")
 
         return results
 
@@ -391,4 +444,43 @@ class UncertaintyCalibrationAnalyser:
             plt.show()
         plt.close()
 
+    def save_calibration_conf_unc(self, analysis_results, output_path):
+        """Save full calibration analysis results to JSON file"""
+
+        def convert_interval(obj):
+            if isinstance(obj, pd.Interval):
+                return str(obj)
+            return obj
+
+        def convert_for_json(obj):
+            if isinstance(obj, dict):
+                return {k: convert_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, pd.DataFrame):
+                # Convert the entire DataFrame, handling Interval objects
+                df = obj.copy()
+                if isinstance(df.index, pd.IntervalIndex):
+                    df.index = df.index.astype(str)
+                # Convert all Interval objects in DataFrame columns
+                df = df.applymap(convert_interval)
+                return df.to_dict(orient='records')
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, (np.float32, np.float64, np.float16, np.int32, np.int64)):
+                return float(obj) if isinstance(obj, np.floating) else int(obj)
+            elif isinstance(obj, tuple):
+                return [convert_for_json(o) for o in obj]
+            elif isinstance(obj, list):
+                return [convert_for_json(v) for v in obj]
+            else:
+                return convert_interval(obj)
+
+        # Convert the full analysis results
+        results_to_save = convert_for_json(analysis_results)
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+
+        # Save to JSON
+        with open(output_path, 'w') as f:
+            json.dump(results_to_save, f, indent=2)
 
