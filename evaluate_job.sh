@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=1-13
-#SBATCH --job-name=evaluate_llama_ai2_arc_cos
+#SBATCH --job-name=eval_llama_ai2_arc_cos
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cos --task ai2_arc
+python -m src.evaluate_uncertainty --model llama3  --index ${START_INDEX} --method cosine --task ai2_arc
 
 deactivate
