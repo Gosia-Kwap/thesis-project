@@ -8,30 +8,50 @@ from typing import Dict, List
 import pandas as pd
 import torch
 from tqdm import tqdm
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig
-)
+from huggingface_hub import hf_hub_download
 
 from src.utils.log_functions import log_message
-from src.model_handlers.perturbator import PerturbationGenerator as Perturbator
+from src.model_handlers.PerturbationGenerator import PerturbationGenerator as Perturbator
 from prompts.CoT import trigger_phrases, prompt_dict
-from src.utils.Enums import MODEL_MAP, LEVEL
-
-
+from src.utils.Enums import MODEL_MAP, LLAMA_MODEL_MAP, quantisation_map
 
 
 class ModelPipeline:
     def __init__(self, args):
         self.args = args
         self._validate_arguments()
-
+        self.backend = args.backend
         torch.cuda.empty_cache()
-
-        self.model = MODEL_MAP[self.args.model]
         self.data = self._load_data()
         self.prompt = self._find_prompt()
+
+        if self.backend == "llama_cpp":
+            repo_id, filename = self.get_repo_and_filename()
+            self.model = hf_hub_download(
+                repo_id=repo_id,
+                filename=filename
+            )
+        else:
+            self.model = MODEL_MAP[self.args.model]
+
+    def get_repo_and_filename(self):
+        if self.args.model not in LLAMA_MODEL_MAP:
+            raise ValueError(f"Unknown model key: {self.args.model}")
+
+        model_info = MODEL_MAP[self.args.model]
+        repo_id = model_info["repo_id"]
+        file_prefix = model_info["file_prefix"]
+        quant_format = model_info["quant_format"]
+        quant_size = quantisation_map[self.args.quantisation]
+
+        if quant_format == "dot":
+            filename = f"{file_prefix}.{self.args.quant_format}.gguf"
+        elif quant_format == "dash":
+            filename = f"{file_prefix}-{self.args.quant_format}.gguf"
+        else:
+            raise ValueError(f"Unknown quant_format for {self.args.model}: {quant_size}")
+
+        return repo_id, filename
 
     def _validate_arguments(self):
         """Validate input arguments"""
