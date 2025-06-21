@@ -30,7 +30,7 @@ class ModelPipeline:
 
         torch.cuda.empty_cache()
 
-        self.model, self.tokenizer = self._load_model_and_tokenizer()
+        self.model = MODEL_MAP[self.args.model]
         self.data = self._load_data()
         self.prompt = self._find_prompt()
 
@@ -48,52 +48,6 @@ class ModelPipeline:
     def _get_device(self) -> str:
         """Determine available device"""
         return "cuda" if torch.cuda.is_available() else "cpu"
-
-    def _load_model_and_tokenizer(self):
-        """Load model and tokenizer with appropriate configuration"""
-        model_name = MODEL_MAP[self.args.model]
-
-        #log where the model is loaded to:
-        log_message(f"Model loaded to {os.getenv('HF_HOME')}", LEVEL.INFO)
-
-        # Load tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_name,
-            token=os.getenv("HUGGING_FACE_TOKEN"),
-            cache_dir=os.getenv("HF_HOME"),
-            use_fast=True,
-            padding_side="left"
-        )
-
-        if tokenizer.pad_token is None:
-            tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-
-        # Model configuration
-        model_kwargs = {
-            "device_map": "auto",
-            "token": os.getenv("HUGGING_FACE_TOKEN"),
-            "low_cpu_mem_usage": True,
-            "torch_dtype": torch.float16,
-            "cache_dir" : os.getenv("HF_HOME")
-        }
-
-        if self.args.quantisation:
-            model_kwargs["quantization_config"] = BitsAndBytesConfig(
-                load_in_8bit=True,
-                llm_int8_skip_modules=["lm_head"],  # Critical for stability
-                # llm_int8_enable_fp32_cpu_offload=True
-            )
-
-        log_message("Loading model...", LEVEL.INFO)
-        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
-
-        # Warmup the model
-        if torch.cuda.is_available():
-            with torch.no_grad():
-                _ = model.generate(**tokenizer("Warmup", return_tensors="pt").to(self.device),
-                                   max_new_tokens=1)
-
-        return model, tokenizer
 
     def _find_prompt(self):
         return prompt_dict[self.args.task]
@@ -124,9 +78,9 @@ class ModelPipeline:
 
         perturbator = Perturbator(
             self.model,
-            self.tokenizer,
             self.prompt,
-            trigger_phrases
+            trigger_phrases,
+            self.args.quantisation
         )
 
         results = []

@@ -1,9 +1,10 @@
+import os
 from typing import List, Dict, Optional
 import torch
-from transformers import AutoConfig
+from transformers import AutoConfig, AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM
 
 from src.utils.log_functions import log_message
-from src.utils.Enums import LEVEL
+from src.utils.Enums import LEVEL, MODEL_MAP
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,10 +13,11 @@ load_dotenv()
 class PerturbationGenerator:
     """Handles efficient generation of perturbed samples"""
 
-    def __init__(self, model, tokenizer, generic_prompt: str, trigger_phrases: List[str], level: LEVEL = LEVEL.INFO):
+    def __init__(self, model_name, generic_prompt: str, trigger_phrases: List[str], level: LEVEL = LEVEL.INFO, quantisation= None):
         self.level = level
-        self.model = model
-        self.tokenizer = tokenizer
+        self.model_name = model_name
+        self.quantisation = quantisation
+        self.model, self.tokenizer = self._load_model_and_tokenizer()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Pre-cache all prompt components
@@ -28,7 +30,7 @@ class PerturbationGenerator:
         self.trigger_phrases = trigger_phrases
 
         # Default temperatures for perturbation
-        self.default_temp = getattr(model.config, "temperature", None)
+        self.default_temp = getattr(self.model.config, "temperature", None)
         if self.default_temp == 1.0:
             self.temperatures = [
                 0.8,
@@ -41,6 +43,51 @@ class PerturbationGenerator:
                 self.default_temp + (1 - self.default_temp) / 2,
                 1.0
             ]
+
+    def _load_model_and_tokenizer(self):
+        """Load model and tokenizer with appropriate configuration"""
+
+        #log where the model is loaded to:
+        log_message(f"Model loaded to {os.getenv('HF_HOME')}", LEVEL.INFO)
+
+        # Load tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.model_name,
+            token=os.getenv("HUGGING_FACE_TOKEN"),
+            cache_dir=os.getenv("HF_HOME"),
+            use_fast=True,
+            padding_side="left"
+        )
+
+        if tokenizer.pad_token is None:
+            tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+
+        # Model configuration
+        model_kwargs = {
+            "device_map": "auto",
+            "token": os.getenv("HUGGING_FACE_TOKEN"),
+            "low_cpu_mem_usage": True,
+            "torch_dtype": torch.float16,
+            "cache_dir" : os.getenv("HF_HOME")
+        }
+
+        if self.quantisation:
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_skip_modules=["lm_head"],  # Critical for stability
+                # llm_int8_enable_fp32_cpu_offload=True
+            )
+
+        log_message("Loading model...", LEVEL.INFO)
+        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+
+        # Warmup the model
+        if torch.cuda.is_available():
+            with torch.no_grad():
+                _ = model.generate(**tokenizer("Warmup", return_tensors="pt").to(self.device),
+                                   max_new_tokens=1)
+
+        return model, tokenizer
 
     def generate_for_question(self, text: str, question: str, num_samples: int = 3, rephrased_questions: list = None, answers = None) -> Dict[str, List[str]]:
         """Generate all perturbations for a single question"""
