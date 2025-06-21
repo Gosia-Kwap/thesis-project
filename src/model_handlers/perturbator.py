@@ -94,7 +94,7 @@ class PerturbationGenerator:
         results = {}
         full_question = text + ". " + question
         if answers:
-            full_question += f" {answers}"
+            full_question += f" {answers} "
         # Temperature perturbations
         for temp in self.temperatures:
             key = f"temp_{temp:.2f}"
