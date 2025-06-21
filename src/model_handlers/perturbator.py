@@ -79,7 +79,7 @@ class PerturbationGenerator:
             )
 
         log_message("Loading model...", LEVEL.INFO)
-        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+        model = AutoModelForCausalLM.from_pretrained(self.model_name, **model_kwargs)
 
         # Warmup the model
         if torch.cuda.is_available():
