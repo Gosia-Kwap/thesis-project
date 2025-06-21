@@ -6,8 +6,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0
-#SBATCH --job-name=gemma27check
-#SBATCH --mem=20GB
+#SBATCH --job-name=test_of_new_pipeline
+#SBATCH --mem=10GB
 
 module purge
 
@@ -32,12 +32,13 @@ ROWS_PER_TASK=100
 
 # Compute index range for this SLURM array task
 START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
-END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
+#END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
+END_INDEX = 2
 
 # Prepare env
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model gemma27b --start ${START_INDEX} --end ${END_INDEX} --quantisation
+python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX}
 
 deactivate
