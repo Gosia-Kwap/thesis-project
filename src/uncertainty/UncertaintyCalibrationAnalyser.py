@@ -107,6 +107,8 @@ class UncertaintyCalibrationAnalyser:
         )
         uncert_ece = self._calculate_ece(uncert_stats, 'mean_certainty', len(flat_df))
 
+        overall_accuracy = conf_df['correct'].mean()
+
         results =  {
             'confidence': {
                 'bin_stats': conf_stats,
@@ -117,7 +119,8 @@ class UncertaintyCalibrationAnalyser:
                 'bin_stats': uncert_stats,
                 'ece': uncert_ece,
                 'calibration_curve': (uncert_stats['accuracy'].to_numpy(), uncert_stats['mean_certainty'].to_numpy())
-            }
+            },
+            'accuracy': overall_accuracy,
         }
 
         if save_dir:
