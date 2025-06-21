@@ -38,7 +38,7 @@ class ModelPipeline:
         if self.args.model not in LLAMA_MODEL_MAP:
             raise ValueError(f"Unknown model key: {self.args.model}")
 
-        model_info = MODEL_MAP[self.args.model]
+        model_info = LLAMA_MODEL_MAP[self.args.model]
         repo_id = model_info["repo_id"]
         file_prefix = model_info["file_prefix"]
         quant_format = model_info["quant_format"]
