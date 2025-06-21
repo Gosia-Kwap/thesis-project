@@ -17,8 +17,8 @@ class PerturbationGenerator:
         self.level = level
         self.model_name = model_name
         self.quantisation = quantisation
-        self.model, self.tokenizer = self._load_model_and_tokenizer()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model, self.tokenizer = self._load_model_and_tokenizer()
 
         # Pre-cache all prompt components
         self.base_prompt_ids = self.tokenizer.encode(generic_prompt, return_tensors='pt').to(self.device)

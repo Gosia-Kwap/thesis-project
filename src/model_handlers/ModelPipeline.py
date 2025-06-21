@@ -26,7 +26,6 @@ class ModelPipeline:
     def __init__(self, args):
         self.args = args
         self._validate_arguments()
-        self.device = self._get_device()
 
         torch.cuda.empty_cache()
 
@@ -45,14 +44,8 @@ class ModelPipeline:
         if self.args.start >= self.args.end:
             raise ValueError("Start index must be less than end index")
 
-    def _get_device(self) -> str:
-        """Determine available device"""
-        return "cuda" if torch.cuda.is_available() else "cpu"
-
     def _find_prompt(self):
         return prompt_dict[self.args.task]
-
-
 
     def _load_data(self) -> pd.DataFrame:
         """Load and prepare dataset"""
