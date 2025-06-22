@@ -45,9 +45,9 @@ class ModelPipeline:
         quant_size = quantisation_map[self.args.quantisation]
 
         if quant_format == "dot":
-            filename = f"{file_prefix}.{quant_format}.gguf"
+            filename = f"{file_prefix}.{quant_size}.gguf"
         elif quant_format == "dash":
-            filename = f"{file_prefix}-{quant_format}.gguf"
+            filename = f"{file_prefix}-{quant_size}.gguf"
         else:
             raise ValueError(f"Unknown quant_format for {self.args.model}: {quant_size}")
 
