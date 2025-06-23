@@ -93,7 +93,8 @@ class ModelPipeline:
             self.model,
             self.prompt,
             trigger_phrases,
-            self.args.quantisation
+            quantisation=self.args.quantisation,
+            backend=self.args.backend,
         )
 
         results = []
