@@ -50,6 +50,6 @@ LLAMA_MODEL_MAP = {
 
 
 quantisation_map = {
-    "6" : "Q_6_K",
-    "4" : "Q_4_K_M"
+    "6" : "Q6_K",
+    "4" : "Q4_K_M"
 }
