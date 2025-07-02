@@ -5,7 +5,6 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=0
 #SBATCH --job-name=test_of_new_pipeline
 #SBATCH --mem=10GB
 
@@ -39,6 +38,6 @@ END_INDEX = 2
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model gemma9b --start ${START_INDEX} --end ${END_INDEX}
+python -m src.main --backend llama_cpp --model gemma9b --start 0 --end 1
 
 deactivate

@@ -28,7 +28,7 @@ Final Answer: [Your final choice as A/B/C/D/E], Overall Confidence (0-100): [You
 Note: The final answer must be one of the multiple-choice options (A, B, C, D, or E). The confidence indicates how certain you are that your final choice is correct. 
 For instance, if your confidence level is 80%, it means you are 80% certain that your selected option is the correct answer.
 
-Also note that you are limited to 200 tokens, so please do not make the explanations too elaborate
+Please note that you only have around 200 tokens, so don't make the explanations too elaborate, and state your answer, so it for sure is produced.
 
 Question:
 """

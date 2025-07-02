@@ -1,5 +1,6 @@
 import argparse
-from src.utils.Enums import MODEL_MAP
+from src.utils.Enums import MODEL_MAP, quantisation_map
+
 
 def parse_arguments_answer_generation():
     """Configure and parse command line arguments"""
@@ -29,14 +30,23 @@ def parse_arguments_answer_generation():
     )
     parser.add_argument(
         "--quantisation",
-        action="store_true",
-        help="Enable 8-bit quantization"
+        type=str,
+        required=False,
+        choices=list(quantisation_map.keys()),
+        help="Quantisation parameter"
     )
     parser.add_argument(
         "--task",
         type=str,
         default="SVAMP",
         help="Task name to process"
+    )
+
+    parser.add_argument(
+        "--backend",
+        help="Choose if models are loaded from transformers or from llama",
+        default="transformer",
+        type=str
     )
 
     return parser.parse_args()
