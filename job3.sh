@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-15
-#SBATCH --job-name=logiqa-llama_quantisation_4k
+#SBATCH --job-name=logiqa-llama_quantisation_6k
 #SBATCH --mem=10GB
 
 module purge
@@ -38,6 +38,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model llama3 --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task logiqa --quantisation 4
+python -m src.main --model llama3 --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task logiqa --quantisation 6
 
 deactivate
