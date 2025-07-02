@@ -5,7 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --job-name=test_of_new_pipeline
+#SBATCH --array=0-9
+#SBATCH --job-name=svamp-llama-4k
 #SBATCH --mem=10GB
 
 module purge
@@ -31,13 +32,12 @@ ROWS_PER_TASK=100
 
 # Compute index range for this SLURM array task
 START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
-#END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
-END_INDEX = 2
+END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 
 # Prepare env
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --backend llama_cpp --model gemma9b --start 0 --end 1
+python -m src.main --backend llama_cpp --model gemma9b --start START_INDEX --end END_INDEX --task SVAMP --quantisation 4
 
 deactivate
