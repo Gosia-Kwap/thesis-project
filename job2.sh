@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=04:00:00
+#SBATCH --time=03:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
@@ -20,10 +20,6 @@ if [ ! -d "thesis_venv" ]; then
 fi
 
 source ./thesis_venv/bin/activate
-
-# having automatic git pull when submitting multiple jobs creates problems when the jobs are queued -
-# e.g. all jobs are run with the same model if model argument got changed after the job submission
-#git pull origin main
 
 pip install --upgrade pip
 pip install --quiet -r requirements.txt
