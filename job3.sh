@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-15
-#SBATCH --job-name=cqa-deepseek
+#SBATCH --job-name=cqa-deepseek_4k
 #SBATCH --mem=10GB
 
 module purge
@@ -38,6 +38,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task CommonsenseQA
+python -m src.main --model deepseek --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task CommonsenseQA --quantisation 4
 
 deactivate
