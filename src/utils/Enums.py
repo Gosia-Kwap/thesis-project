@@ -27,7 +27,7 @@ format_dict = {
 LLAMA_MODEL_MAP = {
     "llama3": {
         "repo_id": "QuantFactory/Meta-Llama-3-8B-Instruct-GGUF-v2",
-        "file_prefix": "Meta-Llama-3-8B-Instruct",
+        "file_prefix": "Meta-Llama-3-8B-Instruct-v2",
         "quant_format": "dot"
     },
     "gemma9b": {
