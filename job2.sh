@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-13
-#SBATCH --job-name=GSM_gemma_4kquant
+#SBATCH --job-name=GSM_llama_4kquant
 #SBATCH --mem=10GB
 
 module purge
@@ -34,6 +34,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model gemma9b --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task GSM8K --quantisation 4
+python -m src.main --model llama3 --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task GSM8K --quantisation 4
 
 deactivate
