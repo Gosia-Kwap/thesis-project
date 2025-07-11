@@ -39,6 +39,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --backend llama_cpp --model gemma9b --start ${START_INDEX} --end 5 --task SVAMP --quantisation 4
+python -m src.main --backend llama_cpp --model llama3 --start ${START_INDEX} --end 5 --task SVAMP --quantisation 4
 
 deactivate
