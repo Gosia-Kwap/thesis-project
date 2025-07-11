@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=1-9
-#SBATCH --job-name=svamp-llama-rest
+#SBATCH --array=0-9
+#SBATCH --job-name=svamp-gemma-4k
 #SBATCH --mem=10GB
 
 module purge
@@ -24,9 +24,9 @@ source ./thesis_venv/bin/activate
 
 pip install --upgrade pip
 
-CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80" \
-  pip install --force-reinstall --no-cache-dir \
-  llama-cpp-python>=0.2.26
+#CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80" \
+#  pip install --force-reinstall --no-cache-dir \
+#  llama-cpp-python>=0.2.26
 pip install --quiet -r requirements.txt
 
 ROWS_PER_TASK=100
@@ -39,6 +39,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --backend llama_cpp --model llama3 --start ${START_INDEX} --end ${END_INDEX} --task SVAMP --quantisation 4
+python -m src.main --backend llama_cpp --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --task SVAMP --quantisation 4
 
 deactivate
