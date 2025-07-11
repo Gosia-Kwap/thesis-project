@@ -26,7 +26,7 @@ pip install --upgrade pip
 
 CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=sm_80" \
   pip install --force-reinstall --no-cache-dir \
-  llama-cpp-python>=0.3.9
+  llama-cpp-python>=0.2.26
 pip install --quiet -r requirements.txt
 
 ROWS_PER_TASK=100
