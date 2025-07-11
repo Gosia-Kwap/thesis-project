@@ -76,7 +76,16 @@ class TransformersModelWrapper(BaseModelWrapper):
 class LlamaCppModelWrapper(BaseModelWrapper):
     def __init__(self, model_path):
         try:
-            self.model = Llama(model_path=model_path, n_gpu_layers=40, n_ctx=4096)
+            self.model = Llama(
+                model_path=model_path,
+                n_gpu_layers=43,  # Offload ALL possible layers
+                n_ctx=4096,
+                main_gpu=0,  # Use primary GPU
+                tensor_split=[1.0],  # Use 100% of GPU memory
+                n_threads=8,  # Match your --cpus-per-task
+                n_batch=512,  # Match your context window
+                offload_kqv=True  # Special for Gemma models
+            )
         except Exception as e:
             print(f"GPU offload failed ({str(e)}), falling back to CPU.")
             self.model = Llama(model_path=model_path, n_gpu_layers=0, n_ctx=4096)
