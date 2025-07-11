@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-15
-#SBATCH --job-name=asdiv-deepseek
+#SBATCH --job-name=logiqa-deepseek
 #SBATCH --mem=10GB
 
 module purge
@@ -39,6 +39,6 @@ export HF_HOME=/tmp
 
 # Run the script with args
 #python -m src.main --model deepseek --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task ASDiv --quantisation 6
-python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task ASDiv
+python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task logiqa
 
 deactivate
