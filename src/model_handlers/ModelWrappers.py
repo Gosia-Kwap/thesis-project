@@ -81,8 +81,6 @@ class LlamaCppModelWrapper(BaseModelWrapper):
             print(f"GPU offload failed ({str(e)}), falling back to CPU.")
             self.model = Llama(model_path=model_path, n_gpu_layers=0, n_ctx=4096)
 
-        log_message(f"GPU layers loaded: {self.model.params.n_gpu_layers}")
-
     def generate(self, prompt: str, num_samples: int, temperature: Optional[float]) -> List[str]:
         results = []
         for _ in range(num_samples):
