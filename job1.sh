@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=svamp-gemma-6k
+#SBATCH --job-name=svamp-llama-6k
 #SBATCH --mem=10GB
 
 module purge
@@ -39,6 +39,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --backend llama_cpp --model gemma9b --start ${START_INDEX} --end ${END_INDEX} --task SVAMP --quantisation 6
+python -m src.main --backend llama_cpp --model llama3 --start ${START_INDEX} --end ${END_INDEX} --task SVAMP --quantisation 6
 
 deactivate
