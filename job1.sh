@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=0
-#SBATCH --job-name=svamp-llama-test
+#SBATCH --array=1-9
+#SBATCH --job-name=svamp-llama-rest
 #SBATCH --mem=10GB
 
 module purge
