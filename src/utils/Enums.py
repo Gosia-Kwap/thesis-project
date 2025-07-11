@@ -41,7 +41,6 @@ LLAMA_MODEL_MAP = {
         "quant_format": "dash"
     },
     "deepseek": {
-
         "repo_id": "Qwen/Qwen3-8B-GGUF",
         "file_prefix": "Qwen3-8B",
         "quant_format": "dash"
