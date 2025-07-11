@@ -24,7 +24,7 @@ source ./thesis_venv/bin/activate
 
 pip install --upgrade pip
 
-CMAKE_ARGS="-DLLAMA_CUBLAS=ON -DCMAKE_CUDA_ARCHITECTURES=sm_80" \
+CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=sm_80" \
   pip install --force-reinstall --no-cache-dir \
   llama-cpp-python>=0.3.9
 pip install --quiet -r requirements.txt
