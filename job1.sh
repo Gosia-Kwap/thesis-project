@@ -12,6 +12,7 @@
 module purge
 
 module load Python/3.10.4-GCCcore-11.3.0
+module load CUDA/12.1.1
 
 
 # Create venv if not exists
@@ -21,11 +22,11 @@ fi
 
 source ./thesis_venv/bin/activate
 
-# having automatic git pull when submitting multiple jobs creates problems when the jobs are queued -
-# e.g. all jobs are run with the same model if model argument got changed after the job submission
-#git pull origin main
-
 pip install --upgrade pip
+
+CMAKE_ARGS="-DLLAMA_CUBLAS=ON -DCMAKE_CUDA_ARCHITECTURES=sm_80" \
+  pip install --force-reinstall --no-cache-dir \
+  llama-cpp-python>=0.3.9
 pip install --quiet -r requirements.txt
 
 ROWS_PER_TASK=100
