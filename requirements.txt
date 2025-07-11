@@ -16,6 +16,12 @@ torch~=2.3.0
 transformers~=4.45.2
 tqdm~=4.67.1
 
+# Remember! install llama_cpp with code below:
+#CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80" \
+#  pip install --force-reinstall --no-cache-dir \
+#  llama-cpp-python>=0.2.26
+# otherwise won't run with gpu
+
 
 
 
