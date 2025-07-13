@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=1-15
-#SBATCH --job-name=eval_gemma_cqa_quant6
+#SBATCH --job-name=eval_gemma_cqa_quant4
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method cosine --task CommonsenseQA --qunatisation 6
+python -m src.evaluate_uncertainty --model gemma9b  --index ${START_INDEX} --method cosine --task CommonsenseQA --qunatisation 4
 
 deactivate
