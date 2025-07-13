@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=1-9
-#SBATCH --job-name=eval_llama_svamp_quant6
+#SBATCH --job-name=eval_llama_svamp_quant4
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task svamp --qunatisation 6
+python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task svamp --qunatisation 4
 
 deactivate
