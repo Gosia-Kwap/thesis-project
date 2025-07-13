@@ -63,6 +63,7 @@ def parse_arguments_evaluation():
     parser.add_argument('--model', type=str, default="gemma9b",
                         help='Model name (e.g., "gemma9b")')
     parser.add_argument('--method', type=str, default="cosine",)
+    parser.add_argument('--quantisation', type=str, default=None,)
 
     args = parser.parse_args()
 
