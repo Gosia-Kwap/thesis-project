@@ -1,11 +1,11 @@
+print("[DEBUG] Python entrypoint reached", file=sys.stderr, flush=True)
+time.sleep(0.5)
+
 import pandas as pd
 from src.uncertainty.probing_uncertainty import ProbingUncertaintyEstimator
 from src.utils.log_functions import log_message
 from src.utils.parsers import parse_arguments_evaluation
 from src.utils.Enums import format_dict
-import re
-
-import re
 
 import re
 
