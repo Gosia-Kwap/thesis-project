@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=03:00:00
+#SBATCH --time=04:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-13
-#SBATCH --job-name=GSM_deepseek-6k
+#SBATCH --job-name=GSM_deepseek
 #SBATCH --mem=10GB
 
 module purge
@@ -34,6 +34,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model deepseek --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task GSM8K --quantisation 6
+python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task GSM8K
 
 deactivate
