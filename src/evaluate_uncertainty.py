@@ -10,6 +10,7 @@ from src.utils.parsers import parse_arguments_evaluation
 from src.utils.Enums import format_dict
 
 import re
+print("[DEBUG] lightweight imports ready", flush=True)
 
 
 def extract_final_answer(text, expected_type="int"):
