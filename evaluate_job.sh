@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=1
+#SBATCH --array=1-2
 #SBATCH --job-name=test_eval_ai2arc_llama_quant4
 #SBATCH --mem=10GB
 
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 4
+python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task ai2_arc
 
 deactivate
