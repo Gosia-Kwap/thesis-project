@@ -143,9 +143,8 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
 
     if index:
         # Load a specific index
-        if quantisation:
-            quantisation = '_' + quantisation
-        df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{quantisation}.json")
+        suffix = f"_{quantisation}" if quantisation else ""
+        df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json")
         results = df.apply(lambda row: compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task]), axis=1)
         output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
         results.to_json(output_dir, orient="records")
@@ -173,4 +172,4 @@ if __name__ == "__main__":
         f"  Range: {args.index}-{args.index +100}\n" if args.index else None
     )
 
-    main(executor=args.executor, task=args.task, model=args.model, index=args.index, method=args.method)
+    main(executor=args.executor, task=args.task, model=args.model, index=args.index, method=args.method, quantisation=args.quantisation)
