@@ -39,6 +39,6 @@ export HF_HOME=/tmp
 
 # Run the script with args
 #python -m src.main --model deepseek --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task logiqa --quantisation 4
-python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task ASDiV
+python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task ASDiv
 
 deactivate
