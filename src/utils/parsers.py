@@ -45,7 +45,7 @@ def parse_arguments_answer_generation():
     parser.add_argument(
         "--backend",
         help="Choose if models are loaded from transformers or from llama",
-        default="transformer",
+        default="transformers",
         type=str
     )
 
