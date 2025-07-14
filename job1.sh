@@ -39,6 +39,6 @@ END_INDEX=$(((SLURM_ARRAY_TASK_ID + 1) * ROWS_PER_TASK))
 export HF_HOME=/tmp
 
 # Run the script with args
-python -m src.main --model deepseek --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task SVAMP --quantisation 6
-
+#python -m src.main --model deepseek --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task SVAMP --quantisation 6
+python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task SVAMP
 deactivate
