@@ -134,16 +134,17 @@ def compute_uncertainty_for_row(row, method = 'cosine', answer_format:str = 'int
 
 def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", index: int =None, method: str = "cosine", quantisation: str = None):
 
-    log_message(f"Starting execution with parameters: executor={executor}, task={task}, model={model}")
+    log_message(f"Starting execution with parameters: executor={executor}, task={task}, model={model}, quantisation={quantisation}")
 
     if executor == "habrok":
         result_dir = '/home2/s4637577/thesis-project/results'
     else:
         result_dir = r"/Users/University/Library/CloudStorage/OneDrive-Personal/Dokumenty/studia/AI/Year3/ThesisAI/thesis-project/results/results-newest"
 
-    if index:
+    suffix = f"_{quantisation}" if quantisation else ""
+
+    if index is not None:
         # Load a specific index
-        suffix = f"_{quantisation}" if quantisation else ""
         df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json")
         results = df.apply(lambda row: compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task]), axis=1)
         output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
@@ -169,7 +170,8 @@ if __name__ == "__main__":
         f"  Model: {args.model}\n"
         f"  Method: {args.method}\n"
         f"  Task: {args.task}\n"
-        f"  Range: {args.index}-{args.index +100}\n" if args.index else None
+        f"  Range: {args.index}-{args.index +100}\n" if args.index else None,
+        f"  Quantisation: {args.quantisation}\n"
     )
 
     main(executor=args.executor, task=args.task, model=args.model, index=args.index, method=args.method, quantisation=args.quantisation)
