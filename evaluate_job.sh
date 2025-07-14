@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=1-9
-#SBATCH --job-name=eval_llama_svamp_quant4
+#SBATCH --array=1
+#SBATCH --job-name=test_eval_ai2arc_llama_quant4
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task svamp --qunatisation 4
+python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 4
 
 deactivate
