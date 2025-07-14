@@ -1,3 +1,5 @@
+import sys
+import time
 print("[DEBUG] Python entrypoint reached", file=sys.stderr, flush=True)
 time.sleep(0.5)
 
