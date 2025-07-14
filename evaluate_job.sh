@@ -26,7 +26,7 @@ source ./thesis_venv/bin/activate
 
 
 pip install --upgrade pip
-pip install --quiet requirements.txt
+pip install -r requirements.txt
 
 ROWS_PER_TASK=100
 
