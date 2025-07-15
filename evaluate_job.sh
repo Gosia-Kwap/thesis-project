@@ -9,9 +9,6 @@
 #SBATCH --job-name=eval_ai2arc_llama_quant4_part1
 #SBATCH --mem=10GB
 
-set -euo pipefail
-PS4='[\D{%T}] ' ; set -x
-
 module purge
 
 module load Python/3.10.4-GCCcore-11.3.0
