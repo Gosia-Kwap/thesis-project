@@ -148,7 +148,10 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
 
     if index is not None:
         # Load a specific index
-        df = pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json")
+        file_name = f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json"
+        print(f"[DEBUG] opening file {file_name}", flush=True)
+        df = pd.read_json(file_name)
+        print(f"[DEBUG] df loaded with {len(df)} rows", flush=True)
         results = df.apply(lambda row: compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task]), axis=1)
         output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
         results.to_json(output_dir, orient="records")
