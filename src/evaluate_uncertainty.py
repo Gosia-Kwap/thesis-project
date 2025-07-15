@@ -1,9 +1,5 @@
-import sys
-import time
-print("[DEBUG] Python entrypoint reached", file=sys.stderr, flush=True)
-time.sleep(0.5)
-
 import pandas as pd
+import tqdm
 from src.uncertainty.probing_uncertainty import ProbingUncertaintyEstimator
 from src.utils.log_functions import log_message
 from src.utils.parsers import parse_arguments_evaluation
@@ -149,26 +145,25 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     suffix = f"_{quantisation}" if quantisation else ""
 
     if index is not None:
-        # # Load a specific index
-        # file_name = f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json"
-        # print(f"[DEBUG] opening file {file_name}", flush=True)
-        # df = pd.read_json(file_name)
-        # print(f"[DEBUG] df loaded with {len(df)} rows", flush=True)
-        # results = df.apply(lambda row: compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task]), axis=1)
-        # output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
-        # results.to_json(output_dir, orient="records")
-        # log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
-        # log_message(f"Results saved to {output_dir}")
+        # Load a specific index
         file_name = f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json"
+        print(f"[DEBUG] opening file {file_name}", flush=True)
         df = pd.read_json(file_name)
-        print(f"[DEBUG] df has {len(df)} rows", flush=True)
-
-        # Try just first row
-        first_row = df.iloc[0]
-        print(f"[DEBUG] computing uncertainty for row 0", flush=True)
-        result = compute_uncertainty_for_row(first_row, method=method, answer_format=format_dict[task])
-        print(f"[DEBUG] row 0 done: {result}", flush=True)
-        return
+        print(f"[DEBUG] df loaded with {len(df)} rows", flush=True)
+        results = []
+        for i, row in tqdm(df.iterrows(), total=len(df)):
+            try:
+                res = compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task])
+                results.append(res)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"[ERROR] row {i} failed: {e}", flush=True)
+                results.append({"error": str(e), "idx": i})
+        output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
+        pd.DataFrame(results).to_json(output_dir, orient="records")
+        log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
+        log_message(f"Results saved to {output_dir}")
     else:
         dataframes = [pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{i}_{i + 100}.json") for i in
                       range(0, 1000, 100)]
