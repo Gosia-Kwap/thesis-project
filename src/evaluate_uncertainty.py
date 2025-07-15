@@ -166,8 +166,9 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
 
 
 if __name__ == "__main__":
+    print("Parsing starts")
     args = parse_arguments_evaluation()
-
+    print("parsing ended")
     log_message(
         f"Starting uncertainty evaluation with parameters:\n"
         f"  Model: {args.model}\n"
