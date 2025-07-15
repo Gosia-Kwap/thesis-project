@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0,2,4,6,8,10
-#SBATCH --job-name=eval_asdiv_llama_quant64part1
+#SBATCH --job-name=eval_asdiv_llama_quant4part1
 #SBATCH --mem=10GB
 
 module purge
