@@ -116,7 +116,9 @@ def compute_uncertainty_for_row(row, method = 'cosine', answer_format:str = 'int
     original_val = extract_final_answer(original, answer_format)
     original_conf = extract_confidence(original)
 
+    print("[DEBUG] creating estimator", flush=True)
     estimator = ProbingUncertaintyEstimator(original)
+    print("[DEBUG] estimator created", flush=True)
     uncertainty = estimator.estimate_uncertainty(temp, trigger, rephrase, method=method)
 
     return {
@@ -147,16 +149,26 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
     suffix = f"_{quantisation}" if quantisation else ""
 
     if index is not None:
-        # Load a specific index
+        # # Load a specific index
+        # file_name = f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json"
+        # print(f"[DEBUG] opening file {file_name}", flush=True)
+        # df = pd.read_json(file_name)
+        # print(f"[DEBUG] df loaded with {len(df)} rows", flush=True)
+        # results = df.apply(lambda row: compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task]), axis=1)
+        # output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
+        # results.to_json(output_dir, orient="records")
+        # log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
+        # log_message(f"Results saved to {output_dir}")
         file_name = f"{result_dir}/{task}_perturbed_outputs_{model}_{index}_{index + 100}{suffix}.json"
-        print(f"[DEBUG] opening file {file_name}", flush=True)
         df = pd.read_json(file_name)
-        print(f"[DEBUG] df loaded with {len(df)} rows", flush=True)
-        results = df.apply(lambda row: compute_uncertainty_for_row(row, method=method, answer_format=format_dict[task]), axis=1)
-        output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
-        results.to_json(output_dir, orient="records")
-        log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
-        log_message(f"Results saved to {output_dir}")
+        print(f"[DEBUG] df has {len(df)} rows", flush=True)
+
+        # Try just first row
+        first_row = df.iloc[0]
+        print(f"[DEBUG] computing uncertainty for row 0", flush=True)
+        result = compute_uncertainty_for_row(first_row, method=method, answer_format=format_dict[task])
+        print(f"[DEBUG] row 0 done: {result}", flush=True)
+        return
     else:
         dataframes = [pd.read_json(f"{result_dir}/{task}_perturbed_outputs_{model}_{i}_{i + 100}.json") for i in
                       range(0, 1000, 100)]
