@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=00:30:00
+#SBATCH --time=02:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=1-2
-#SBATCH --job-name=test_eval_ai2arc_llama_quant4
+#SBATCH --array=0,2,4,6,8,10
+#SBATCH --job-name=eval_ai2arc_llama_quant4_part1
 #SBATCH --mem=10GB
 
 set -euo pipefail
@@ -35,6 +35,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -X importtime -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 4
+python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 4
 
 deactivate

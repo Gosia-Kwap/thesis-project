@@ -19,6 +19,7 @@ def extract_final_answer(text, expected_type="int"):
         r'Final Answer and Overall Confidence\(0-100\):\s*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)\s*,\s*\d+%',
         r'final answer[^:]*:\s*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)',
         r'answer is[:\s]*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)',
+        r'answer [:\s]*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)',
         r'\bx\s*=\s*([A-Ea-e]|\S*\d+(?:\.\d+)?\S*)'
     ]
 
@@ -27,10 +28,16 @@ def extract_final_answer(text, expected_type="int"):
         if match:
             return convert_answer(match.group(1), expected_type)
 
-    # fallback: last number with optional surrounding units, not a %
-    numbers = re.findall(r'(\S*\d+(?:\.\d+)?\S*)(?!\s*%)', text)
-    if numbers:
-        return convert_answer(numbers[-1], expected_type)
+    if expected_type == "label":
+        # fallback for label: find a single capital letter
+        match = re.search(r'\b([A-E])\b', text)
+        if match:
+            return convert_answer(match.group(1), expected_type)
+    else:
+        # fallback: last number with optional surrounding units, not a % (if answer is not a label)
+        numbers = re.findall(r'(\S*\d+(?:\.\d+)?\S*)(?!\s*%)', text)
+        if numbers:
+            return convert_answer(numbers[-1], expected_type)
 
     return None
 
@@ -112,9 +119,7 @@ def compute_uncertainty_for_row(row, method = 'cosine', answer_format:str = 'int
     original_val = extract_final_answer(original, answer_format)
     original_conf = extract_confidence(original)
 
-    print("[DEBUG] creating estimator", flush=True)
     estimator = ProbingUncertaintyEstimator(original)
-    print("[DEBUG] estimator created", flush=True)
     uncertainty = estimator.estimate_uncertainty(temp, trigger, rephrase, method=method)
 
     return {
@@ -176,16 +181,14 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
 
 
 if __name__ == "__main__":
-    print("[DEBUG] calling parse_arguments_evaluation()", flush=True)
     args = parse_arguments_evaluation()
-    print("[DEBUG] parse_arguments_evaluation() finished", flush=True)
     log_message(
         f"Starting uncertainty evaluation with parameters:\n"
         f"  Model: {args.model}\n"
         f"  Method: {args.method}\n"
         f"  Task: {args.task}\n"
-        f"  Range: {args.index}-{args.index +100}\n" if args.index else None,
         f"  Quantisation: {args.quantisation}\n"
+        f"  Range: {args.index}-{args.index +100}\n" if args.index else None
     )
 
     main(executor=args.executor, task=args.task, model=args.model, index=args.index, method=args.method, quantisation=args.quantisation)
