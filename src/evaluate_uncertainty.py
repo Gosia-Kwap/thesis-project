@@ -1,5 +1,5 @@
 import pandas as pd
-import tqdm
+from tqdm import tqdm
 from src.uncertainty.probing_uncertainty import ProbingUncertaintyEstimator
 from src.utils.log_functions import log_message
 from src.utils.parsers import parse_arguments_evaluation
