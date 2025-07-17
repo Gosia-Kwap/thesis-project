@@ -15,18 +15,14 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 
 # Create venv if not exists
-if [ ! -d "thesis_venv" ]; then
-  python3 -m venv thesis_venv
+if [ ! -d "thesis_venv_deepseek" ]; then
+  python3 -m venv thesis_venv_deepseek
 fi
 
-source ./thesis_venv/bin/activate
-
-# having automatic git pull when submitting multiple jobs creates problems when the jobs are queued -
-# e.g. all jobs are run with the same model if model argument got changed after the job submission
-#git pull origin main
+source ./thesis_venv_deepseek/bin/activate
 
 pip install --upgrade pip
-pip install --quiet -r requirements.txt
+pip install --quiet -r requirements_deepseek.txt
 
 ROWS_PER_TASK=100
 
