@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0,2,4,6,8
-#SBATCH --job-name=eval-ai2_arc-gemma-quant6-part1
+#SBATCH --job-name=eval-ai2_arc-lamma-quant4-part1
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 6
+python -m src.evaluate_uncertainty --model lama3 --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 4
 
 deactivate
