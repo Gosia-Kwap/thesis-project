@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task svamp --quantisation 6
+python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task SVAMP --quantisation 6
 
 deactivate
