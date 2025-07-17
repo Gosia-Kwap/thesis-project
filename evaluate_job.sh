@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0,2,4,6,8
-#SBATCH --job-name=eval-ai2_arc-deepseek-quant4-part1
+#SBATCH --job-name=eval-asdiv-deepseek-quant6-part1
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 4
+python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method cosine --task ASDiv --quantisation 4
 
 deactivate
