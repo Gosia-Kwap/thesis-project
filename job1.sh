@@ -24,9 +24,9 @@ source ./thesis_venv_deepseek/bin/activate
 
 pip install --upgrade pip
 
-#CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80" \
-#  pip install --force-reinstall --no-cache-dir \
-#  llama-cpp-python>=0.2.26
+CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80" \
+  pip install --force-reinstall --no-cache-dir \
+  llama-cpp-python>=0.2.26
 pip install --quiet -r requirements_deepseek.txt
 
 ROWS_PER_TASK=100
