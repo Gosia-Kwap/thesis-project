@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-7
-#SBATCH --job-name=ai2_arc-deepseek
+#SBATCH --job-name=logiqa-deepseek
 #SBATCH --mem=10GB
 
 module purge
@@ -35,6 +35,6 @@ export HF_HOME=/tmp
 
 # Run the script with args
 #python -m src.main --model deepseek --backend llama_cpp --start ${START_INDEX} --end ${END_INDEX} --task logiqa --quantisation 4
-python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task ai2_arc
+python -m src.main --model deepseek --start ${START_INDEX} --end ${END_INDEX} --task logiqa
 
 deactivate
