@@ -73,7 +73,7 @@ class UncertaintyCalibrationAnalyser:
             log_message('Too few unique confidence values')
             conf_bins = pd.cut(conf_df['confidence'], bins=self.num_bins)
         conf_stats = (
-            conf_df.groupby(conf_bins)
+            conf_df.groupby(conf_bins, observed=True)
             .agg(
                 mean_confidence=('confidence', 'mean'),
                 accuracy=('correct', 'mean'),
@@ -95,7 +95,7 @@ class UncertaintyCalibrationAnalyser:
             log_message('Too few uncertainty values')
             uncert_bins = pd.cut(conf_df['uncertainty'], bins=self.num_bins)
         uncert_stats = (
-            flat_df.groupby(uncert_bins)
+            flat_df.groupby(uncert_bins, observed=True)
             .agg(
                 mean_uncertainty=('uncertainty', 'mean'),
                 mean_certainty=('uncertainty', lambda x: 1 - x.mean()),
@@ -376,7 +376,7 @@ class UncertaintyCalibrationAnalyser:
 
             # Compute bin statistics
             bin_stats = (
-                flat_df.groupby(bins)
+                flat_df.groupby(bins, observed=True)
                 .agg(
                     mean_certainty=('certainty', 'mean'),
                     accuracy=('correct', 'mean'),
@@ -464,7 +464,7 @@ class UncertaintyCalibrationAnalyser:
                 if isinstance(df.index, pd.IntervalIndex):
                     df.index = df.index.astype(str)
                 # Convert all Interval objects in DataFrame columns
-                df = df.applymap(convert_interval)
+                df = df.map(convert_interval)
                 return df.to_dict(orient='records')
             elif isinstance(obj, np.ndarray):
                 return obj.tolist()
