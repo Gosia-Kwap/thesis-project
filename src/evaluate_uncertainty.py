@@ -165,7 +165,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
                 traceback.print_exc()
                 print(f"[ERROR] row {i} failed: {e}", flush=True)
                 results.append({"error": str(e), "idx": i})
-        output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}.json"
+        output_dir = f"{result_dir}/uncertainty/{task}_perturbed_outputs_{model}_{index}_uncertainty_{method}{suffix}.json"
         pd.DataFrame(results).to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: index={index}, task={task}, model={model}")
         log_message(f"Results saved to {output_dir}")
@@ -174,7 +174,7 @@ def main(executor: str = "habrok", task: str = "SVAMP", model: str = "gemma9b", 
                       range(0, 1000, 100)]
         combined_df = pd.concat(dataframes, ignore_index=True)
         results = combined_df.apply(lambda row: compute_uncertainty_for_row(row, method), axis=1)
-        output_dir = f"{result_dir}/{task}_perturbed_outputs_{model}_uncertainty_{method}.json"
+        output_dir = f"{result_dir}/{task}_perturbed_outputs_{model}_uncertainty_{method}{suffix}.json"
         results.to_json(output_dir, orient="records")
         log_message(f"Finished execution with parameters: task={task}, model={model}")
         log_message(f"Results saved to {output_dir}")
