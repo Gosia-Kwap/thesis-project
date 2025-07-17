@@ -1,0 +1,29 @@
+accelerate==1.6.0
+bitsandbytes==0.45.5; sys_platform == "linux"
+datasets~=3.4.1
+dotenv~=0.9.9
+huggingface_hub~=0.30.2
+huggingface_hub[hf_xet]
+numpy==1.26.0
+pandas~=2.2.3
+protobuf~=6.31.1
+sentencepiece~=0.2.0
+seaborn~=0.13.2
+scikit-learn~=1.5.2
+scipy~=1.14.0
+tiktoken== 0.9.0
+torch~=2.3.0
+transformers~=4.53.2
+tqdm~=4.67.1
+
+# Remember! install llama_cpp with code below:
+#CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80" \
+#  pip install --force-reinstall --no-cache-dir \
+#  llama-cpp-python>=0.2.26
+# otherwise won't run with gpu
+
+
+
+
+
+

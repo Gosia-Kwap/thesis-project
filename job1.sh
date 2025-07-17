@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=03:00:00
+#SBATCH --time=00:15:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-9
-#SBATCH --job-name=svamp-deepseek-6k
+#SBATCH --array=0
+#SBATCH --job-name=deepseek_try
 #SBATCH --mem=10GB
 
 module purge
@@ -16,18 +16,18 @@ module load CUDA/12.1.1
 
 
 # Create venv if not exists
-if [ ! -d "thesis_venv" ]; then
-  python3 -m venv thesis_venv
+if [ ! -d "thesis_venv_deepseek" ]; then
+  python3 -m venv thesis_venv_deepseek
 fi
 
-source ./thesis_venv/bin/activate
+source ./thesis_venv_deepseek/bin/activate
 
 pip install --upgrade pip
 
 #CMAKE_ARGS="-DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80" \
 #  pip install --force-reinstall --no-cache-dir \
 #  llama-cpp-python>=0.2.26
-pip install --quiet -r requirements.txt
+pip install --quiet -r requirements_deepseek.txt
 
 ROWS_PER_TASK=100
 
