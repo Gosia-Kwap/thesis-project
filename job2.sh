@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=04:00:00
+#SBATCH --time=03:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=8
@@ -15,14 +15,26 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 
 # Create venv if not exists
-if [ ! -d "thesis_venv" ]; then
-  python3 -m venv thesis_venv
+#if [ ! -d "thesis_venv" ]; then
+#  python3 -m venv thesis_venv
+#fi
+#
+#source ./thesis_venv/bin/activate
+#
+#pip install --upgrade pip
+#pip install --quiet -r requirements.txt
+
+# Create venv if not exists
+if [ ! -d "thesis_venv_deepseek" ]; then
+  python3 -m venv thesis_venv_deepseek
 fi
 
-source ./thesis_venv/bin/activate
+source ./thesis_venv_deepseek/bin/activate
 
 pip install --upgrade pip
-pip install --quiet -r requirements.txt
+pip install --quiet -r requirements_deepseek.txt
+
+
 
 ROWS_PER_TASK=100
 
