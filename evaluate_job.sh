@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0,2,6,8,10
+#SBATCH --array=0,2,6,10
 #SBATCH --job-name=eval-cqa-llama-quant4-part1
 #SBATCH --mem=10GB
 
