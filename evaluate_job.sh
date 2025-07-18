@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=04:00:00
+#SBATCH --time=01:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0,2,4,6,8
-#SBATCH --job-name=eval-asdiv_llama_4
+#SBATCH --array=0-12
+#SBATCH --job-name=eval-asdiv_llama
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task ASDiv --quantisation 4
+python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method cosine --task ASDiv
 
 deactivate
