@@ -5,8 +5,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-12
-#SBATCH --job-name=eval-asdiv-gemma
+#SBATCH --array=0-9
+#SBATCH --job-name=eval-deepseek-svamp
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model gemma9b --index ${START_INDEX} --method cosine --task ASDiv
+python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method cosine --task SVAMP
 
 deactivate
