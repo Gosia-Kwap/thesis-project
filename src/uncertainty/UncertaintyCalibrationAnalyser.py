@@ -281,6 +281,8 @@ class UncertaintyCalibrationAnalyser:
                         'mean_incorrect': incorrect_values.mean(),
                         'p_value': p_value,
                         't_stat': t_stat,
+                        'correct_values': [float(val) for val in correct_values],
+                        'incorrect_values': [float(val) for val in incorrect_values]
                     })
 
         return pd.DataFrame(stats_results)
