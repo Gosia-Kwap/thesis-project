@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=eval-deepseek-GSM8K-entailment
+#SBATCH --job-name=eval-deepseek-ASDiv-cosine
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method entailment --task GSM8K
+python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method cosine --task ASDiv
 
 deactivate
