@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=1-9
-#SBATCH --job-name=eval-llama-gsm8k-entailment
+#SBATCH --job-name=eval-deepseekq6-asdiv
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method entailment --task GSM8K
+python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method cosine --task ASDiv --quantisation 6
 
 deactivate
