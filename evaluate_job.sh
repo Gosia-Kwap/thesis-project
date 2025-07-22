@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --time=01:00:00
+#SBATCH --time=04:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=1-9
-#SBATCH --job-name=eval-deepseekq6-logiqa
+#SBATCH --array=0,2,4,6,8
+#SBATCH --job-name=eval-llama4-ai2_arc
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method cosine --task logiqa --quantisation 6
+python -m src.evaluate_uncertainty --model llama --index ${START_INDEX} --method cosine --task ai2_arc --quantisation 4
 
 deactivate
