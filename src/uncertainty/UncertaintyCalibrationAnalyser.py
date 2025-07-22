@@ -43,12 +43,21 @@ class UncertaintyCalibrationAnalyser:
         return files
 
     def _load_and_preprocess_data(self):
-        """Load and concatenate all result files"""
+        """Load and concatenate all result files, adding 'previous' uncertainty as average of temp and rephrase"""
         dfs = []
         for file in self.result_files:
             try:
                 with open(file, 'r') as f:
                     data = json.load(f)
+
+                # Process each entry to add 'tamaru' uncertainty
+                for entry in data:
+                    if 'uncertainty' in entry and isinstance(entry['uncertainty'], dict):
+                        uncertainty = entry['uncertainty']
+                        if 'temp' in uncertainty and 'rephrase' in uncertainty:
+                            # Calculate tamaru as average of temp and rephrase
+                            entry['uncertainty']['previous'] = (uncertainty['temp'] + uncertainty['rephrase']) / 2
+
                 dfs.append(pd.DataFrame(data))
             except Exception as e:
                 print(f"Error loading {file}: {str(e)}")
@@ -59,7 +68,7 @@ class UncertaintyCalibrationAnalyser:
 
         return pd.concat(dfs, ignore_index=True)
 
-    def analyze_calibration_conf_unc(self, unc_type: str = 'overall', save_dir=None):
+    def analyze_calibration_conf_unc(self, unc_type = ['overall', 'previous'], save_dir=None):
         # Flatten the data
         flat_df = self._get_flattened_data()
 
@@ -85,27 +94,34 @@ class UncertaintyCalibrationAnalyser:
         conf_ece = self._calculate_ece(conf_stats, 'mean_confidence', len(conf_df))
         flat_df = conf_df
         # 2. Uncertainty Calibration (using 1 - uncertainty as "certainty")
-        flat_df['uncertainty'] = flat_df['uncertainty'].apply(lambda d: d.get(unc_type, None))
-        flat_df['uncertainty'] = flat_df['uncertainty'].apply(lambda x: x[1] if isinstance(x, tuple) else x)
+        uncertainty_results = {}
+        for unc in unc_type:
+            flat_df[f'uncertainty_{unc}'] = flat_df['uncertainty'].apply(lambda d: d.get(unc, None))
+            flat_df[f'uncertainty_{unc}'] = flat_df[f'uncertainty_{unc}'].apply(lambda x: x[1] if isinstance(x, tuple) else x)
 
-        try:
-            uncert_bins = pd.qcut(conf_df['uncertainty'], q=self.num_bins, duplicates='drop')
-        except ValueError:
-            # fallback: if too few unique values, use pd.cut
-            log_message('Too few uncertainty values')
-            uncert_bins = pd.cut(conf_df['uncertainty'], bins=self.num_bins)
-        uncert_stats = (
-            flat_df.groupby(uncert_bins, observed=True)
-            .agg(
-                mean_uncertainty=('uncertainty', 'mean'),
-                mean_certainty=('uncertainty', lambda x: 1 - x.mean()),
-                accuracy=('correct', 'mean'),
-                count=('correct', 'size')
+            try:
+                uncert_bins = pd.qcut(flat_df[f'uncertainty_{unc}'], q=self.num_bins, duplicates='drop')
+            except ValueError:
+                # fallback: if too few unique values, use pd.cut
+                log_message('Too few uncertainty values')
+                uncert_bins = pd.cut(flat_df[f'uncertainty_{unc}'], bins=self.num_bins)
+            uncert_stats = (
+                flat_df.groupby(uncert_bins, observed=True)
+                .agg(
+                    mean_uncertainty=(f'uncertainty_{unc}', 'mean'),
+                    mean_certainty=(f'uncertainty_{unc}', lambda x: 1 - x.mean()),
+                    accuracy=('correct', 'mean'),
+                    count=('correct', 'size')
+                )
+                .reset_index()
+                .dropna()
             )
-            .reset_index()
-            .dropna()
-        )
-        uncert_ece = self._calculate_ece(uncert_stats, 'mean_certainty', len(flat_df))
+            uncert_ece = self._calculate_ece(uncert_stats, 'mean_certainty', len(flat_df))
+            uncertainty_results[unc] = {
+                'bin_stats': uncert_stats,
+                'ece': uncert_ece,
+                'calibration_curve': (uncert_stats['accuracy'].to_numpy(), uncert_stats['mean_certainty'].to_numpy())
+            }
 
         overall_accuracy = conf_df['correct'].mean()
 
@@ -115,11 +131,7 @@ class UncertaintyCalibrationAnalyser:
                 'ece': conf_ece,
                 'calibration_curve': (conf_stats['accuracy'].to_numpy(), conf_stats['mean_confidence'].to_numpy())
             },
-            'uncertainty': {
-                'bin_stats': uncert_stats,
-                'ece': uncert_ece,
-                'calibration_curve': (uncert_stats['accuracy'].to_numpy(), uncert_stats['mean_certainty'].to_numpy())
-            },
+            'uncertainty': uncertainty_results,
             'accuracy': overall_accuracy,
         }
 
@@ -303,7 +315,7 @@ class UncertaintyCalibrationAnalyser:
 
         # Confidence plot
         if mode in ['both', 'confidence']:
-            conf = analysis_results['confidence']
+            conf = analysis_results['confidence']['overall']
             conf_curve_y, conf_curve_x = conf['calibration_curve']
             conf_stats = conf['bin_stats']
 
@@ -327,34 +339,6 @@ class UncertaintyCalibrationAnalyser:
             ax1b.set_ylim(0, 1)
             ax1b.set_ylabel('Count (scaled)', color='blue')
             ax1b.tick_params(axis='y', labelcolor='blue')
-
-        # Uncertainty plot
-        if mode in ['both', 'uncertainty']:
-            uncert = analysis_results['uncertainty']
-            uncert_curve_y, uncert_curve_x = uncert['calibration_curve']
-            uncert_stats = uncert['bin_stats']
-
-            ax2.plot(uncert_curve_x, uncert_curve_y, 'o-', color='orange', label='Calibration curve')
-            ax2.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
-            ax2.set_title(f'Uncertainty Calibration (ECE={uncert["ece"]:.3f})')
-            ax2.set_xlabel('Predicted Probability')
-            ax2.set_ylabel('Actual Accuracy')
-            ax2.grid(True)
-            ax2.legend()
-
-            # Bar chart showing counts per bin
-            ax2b = ax2.twinx()
-            bin_width = (uncert_stats['mean_certainty'].max() - uncert_stats['mean_certainty'].min()) / len(
-                uncert_stats)
-            bar_width = bin_width * 0.8
-            max_count = uncert_stats['count'].max()
-            uncert_stats['count_scaled'] = uncert_stats['count'] / (max_count * 4)
-
-            ax2b.bar(uncert_stats['mean_certainty'], uncert_stats['count_scaled'],
-                     width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
-            ax2b.set_ylim(0, 1)
-            ax2b.set_ylabel('Count (scaled)', color='blue')
-            ax2b.tick_params(axis='y', labelcolor='blue')
 
         fig.tight_layout()
 
@@ -488,4 +472,63 @@ class UncertaintyCalibrationAnalyser:
         # Save to JSON
         with open(output_path, 'w') as f:
             json.dump(results_to_save, f, indent=2)
+
+    def analyze_calibration_uncertainty_comparison(self, unc_type1: str = 'overall', unc_type2: str = 'previous',
+                                                   save_dir=None):
+        """Compare calibration between two different uncertainty types"""
+        # Flatten the data
+        flat_df = self._get_flattened_data()
+
+        # Process both uncertainty types
+        for unc_type in [unc_type1, unc_type2]:
+            col_name = f'uncertainty_{unc_type}'
+            flat_df[col_name] = flat_df['uncertainty'].apply(lambda d: d.get(unc_type, None))
+            flat_df[col_name] = flat_df[col_name].apply(lambda x: x[1] if isinstance(x, tuple) else x)
+
+        # Filter out rows where either uncertainty is missing
+        comparison_df = flat_df.dropna(subset=[f'uncertainty_{unc_type1}', f'uncertainty_{unc_type2}'])
+
+        results = {}
+        overall_accuracy = comparison_df['correct'].mean()
+
+        # Analyze each uncertainty type
+        for unc_type in [unc_type1, unc_type2]:
+            col_name = f'uncertainty_{unc_type}'
+
+            try:
+                uncert_bins = pd.qcut(comparison_df[col_name], q=self.num_bins, duplicates='drop')
+            except ValueError:
+                log_message(f'Too few unique values for {unc_type} uncertainty')
+                uncert_bins = pd.cut(comparison_df[col_name], bins=self.num_bins)
+
+            uncert_stats = (
+                comparison_df.groupby(uncert_bins, observed=True)
+                .agg(
+                    mean_uncertainty=(col_name, 'mean'),
+                    mean_certainty=(col_name, lambda x: 1 - x.mean()),
+                    accuracy=('correct', 'mean'),
+                    count=('correct', 'size')
+                )
+                .reset_index()
+                .dropna()
+            )
+            uncert_ece = self._calculate_ece(uncert_stats, 'mean_certainty', len(comparison_df))
+
+            results[unc_type] = {
+                'bin_stats': uncert_stats,
+                'ece': uncert_ece,
+                'calibration_curve': (uncert_stats['accuracy'].to_numpy(), uncert_stats['mean_certainty'].to_numpy())
+            }
+
+        results['accuracy'] = overall_accuracy
+        results['comparison'] = {
+            'correlation': comparison_df[[f'uncertainty_{unc_type1}', f'uncertainty_{unc_type2}']].corr().iloc[0, 1],
+            'n_samples': len(comparison_df)
+        }
+
+        if save_dir:
+            self.save_calibration_conf_unc(results,
+                                           f"{save_dir}_calibration_unc_comparison_{unc_type1}_vs_{unc_type2}.json")
+
+        return results
 
