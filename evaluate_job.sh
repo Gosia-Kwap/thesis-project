@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
 #SBATCH --array=0-9
-#SBATCH --job-name=eval-deepseek-cqa-cosine
+#SBATCH --job-name=eval-llama-gsm8k-entailment
 #SBATCH --mem=10GB
 
 module purge
@@ -32,6 +32,6 @@ START_INDEX=$((SLURM_ARRAY_TASK_ID * ROWS_PER_TASK))
 
 export HF_HOME=/tmp
 # Run the script with args
-python -m src.evaluate_uncertainty --model deepseek --index ${START_INDEX} --method cosine --task CommonsenseQA
+python -m src.evaluate_uncertainty --model llama3 --index ${START_INDEX} --method entailment --task GSM8K
 
 deactivate
