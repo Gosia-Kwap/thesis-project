@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks=1
-#SBATCH --array=0-9
+#SBATCH --array=1-9
 #SBATCH --job-name=eval-llama-gsm8k-entailment
 #SBATCH --mem=10GB
 
