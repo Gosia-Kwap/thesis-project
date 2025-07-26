@@ -48,7 +48,7 @@ def analyse_results(task, model, method, quantisation):
     analyser.plot_calibration_all_unc(all_uncertainty_results, save_dir=plot_dir)
     # Compare results
     print("Confidence ECE:", analysis_results['confidence']['ece'])
-    print("Uncertainty ECE:", analysis_results['uncertainty']['ece'])
+    print("Uncertainty ECE:", analysis_results['uncertainty']['overall']['ece'])
     print("Accuracy on the dataset:", analysis_results['accuracy'])
 
     results = {

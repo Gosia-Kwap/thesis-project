@@ -315,7 +315,7 @@ class UncertaintyCalibrationAnalyser:
 
         # Confidence plot
         if mode in ['both', 'confidence']:
-            conf = analysis_results['confidence']['overall']
+            conf = analysis_results['confidence']
             conf_curve_y, conf_curve_x = conf['calibration_curve']
             conf_stats = conf['bin_stats']
 
@@ -340,6 +340,32 @@ class UncertaintyCalibrationAnalyser:
             ax1b.set_ylabel('Count (scaled)', color='blue')
             ax1b.tick_params(axis='y', labelcolor='blue')
 
+        if mode in ['both', 'uncertainty']:
+            unc = analysis_results['uncertainty']['overall']
+            unc_curve_y, unc_curve_x = unc['calibration_curve']
+            unc_stats = unc['bin_stats']
+
+            ax2.plot(unc_curve_y, unc_curve_x, 'o-', color='orange', label='Calibration curve')
+            ax2.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
+            ax2.set_title(f'Uncertainty Calibration (ECE={unc["ece"]:.3f})')
+            ax2.set_xlabel('Predicted Probability')
+            ax2.set_ylabel('Actual Accuracy')
+            ax2.grid(True)
+            ax2.legend()
+
+            # Bar chart showing counts per bin
+            ax2b = ax2.twinx()
+            bin_width = (unc_stats['mean_uncertainty'].max() - unc_stats['mean_uncertainty'].min()) / len(unc_stats)
+            bar_width = bin_width * 0.8
+            max_count = unc_stats['count'].max()
+            unc_stats['count_scaled'] = unc_stats['count'] / (max_count * 4)
+
+            ax2b.bar(unc_stats['mean_uncertainty'], unc_stats['count_scaled'],
+                     width=bar_width, alpha=0.15, color='#6699cc', edgecolor='black', label='Count (scaled)')
+            ax2b.set_ylim(0, 1)
+            ax2b.set_ylabel('Count (scaled)', color='blue')
+            ax2b.tick_params(axis='y', labelcolor='blue')
+
         fig.tight_layout()
 
         if save_path:
@@ -353,7 +379,7 @@ class UncertaintyCalibrationAnalyser:
         flat_df = self._get_flattened_data()
         results = {}
 
-        for uncert_type in ['overall', 'temp', 'trigger', 'rephrase']:
+        for uncert_type in ['overall', 'temp', 'trigger', 'rephrase', 'previous']:
             # Convert uncertainty to certainty
             flat_df['certainty'] = flat_df['uncertainty'].apply(lambda d: 1 - d[uncert_type])
 
